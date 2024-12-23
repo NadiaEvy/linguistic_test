@@ -189,7 +189,7 @@
                         formData.append("surveyData", JSON.stringify(surveyData));  // Include survey data
 
                         try {
-                            const response = await fetch("YOUR_SERVER_URL/upload", {
+                            const response = await fetch("https://nadiaevy.github.io/linguistic_test/upload", {
                                 method: "POST",
                                 body: formData,
                             });
