@@ -196,11 +196,9 @@
                             const result = await client.put(fileName, audioBlob);
                             console.log(`Uploaded successfully: ${result.url}`);
 
-                            // After successful upload, show the 'Next Word' button
                             nextWordButton.style.display = "block";
                             nextWordButton.disabled = false;
 
-                            // Optionally, send additional data, such as the audio URL
                             const formData = new FormData();
                             formData.append("audioUrl", result.url);
                             formData.append("respondentId", respondentId);
@@ -212,11 +210,9 @@
                         }
                     };
 
-                    // Start recording
                     mediaRecorder.start();
                     button.textContent = "Stop Recording";
                 } else {
-                    // Stop recording
                     mediaRecorder.stop();
                     button.textContent = "Start Recording";
                 }
@@ -226,10 +222,17 @@
         function getRespondentId() {
             let respondentId = localStorage.getItem("respondentId");
             if (!respondentId) {
-                respondentId = "resp_" + Date.now(); // Simple unique ID
+                respondentId = "resp_" + Date.now();
                 localStorage.setItem("respondentId", respondentId);
             }
             return respondentId;
+        }
+
+        function recordResponse(word, response) {
+            responses.push({ word, response });
+            console.log(`Recorded response for "${word}": ${response}`);
+            nextWordButton.style.display = "block";
+            nextWordButton.disabled = false;
         }
 
         nextWordButton.addEventListener("click", () => {
