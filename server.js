@@ -2,6 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
+const cors = require("cors");  // Import CORS to handle cross-origin requests
 
 const app = express();
 const PORT = 3000;
@@ -9,11 +10,26 @@ const PORT = 3000;
 // Middleware
 app.use(express.json());
 app.use(express.static("public"));
+app.use(cors());  // Enable CORS for all domains (or configure it as needed)
 
-const upload = multer({ dest: "uploads/" });
+// Set up storage configuration for multer (optional: define where the files are stored)
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, "uploads/");  // Files will be saved in the "uploads" directory
+    },
+    filename: function (req, file, cb) {
+        cb(null, `${Date.now()}-${file.originalname}`);  // Use a timestamp to prevent filename conflicts
+    }
+});
 
+const upload = multer({ storage: storage });
 
-// Route to save memory test responses
+// Ensure the "uploads" directory exists
+if (!fs.existsSync("uploads")) {
+    fs.mkdirSync("uploads");
+}
+
+// Route to save memory test responses (if needed for survey data)
 app.post("/api/memory-test", (req, res) => {
     fs.appendFileSync("memory_test_data.json", JSON.stringify(req.body.responses) + "\n");
     res.sendStatus(200);
@@ -21,24 +37,16 @@ app.post("/api/memory-test", (req, res) => {
 
 // Route to handle audio uploads
 app.post("/api/upload", upload.single("audio"), (req, res) => {
-    res.json({ success: true, path: `/uploads/${req.file.filename}` });
+    // After file is uploaded, return the file path as a response
+    if (req.file) {
+        console.log(`File uploaded: ${req.file.filename}`);
+        res.json({ success: true, path: `/uploads/${req.file.filename}` });
+    } else {
+        res.status(400).json({ error: "No file uploaded" });
+    }
 });
 
 // Start the server
 app.listen(PORT, () => {
     console.log(`Server is running at http://localhost:${PORT}`);
-});
-app.post("/upload", upload.single("file"), (req, res) => {
-    const { surveyData, phase, word, respondentId } = req.body;
-
-    // Parse the survey data
-    const survey = JSON.parse(surveyData);
-
-    // Log or save the survey and audio information
-    console.log(`Received file for respondent: ${respondentId}`);
-    console.log(`Survey data: ${JSON.stringify(survey)}`);
-    console.log(`Phase: ${phase}, Word: ${word}`);
-
-    // Store the file, perhaps in a subfolder for the respondent (already handled by multer storage)
-    res.status(200).send("File and survey data uploaded successfully!");
 });
