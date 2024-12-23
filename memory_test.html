@@ -147,6 +147,7 @@
 
                 nextWordButton.style.display = "none";
                 audio.onended = () => {
+                    console.log("Audio ended, showing next word button");
                     nextWordButton.style.display = "block";
                 };
             } else {
@@ -195,13 +196,12 @@
                             formData.append("respondentId", getRespondentId());
                             formData.append("surveyData", JSON.stringify(surveyData));
 
-                            // 将音频的 URL 发送到后端记录（如果需要）
                             // 这里如果上传成功，显示“下一单词”按钮
                             nextWordButton.style.display = "block";
                             nextWordButton.disabled = false;
                         } catch (error) {
                             console.error("上传到 OSS 失败:", error);
-                            nextWordButton.style.display = "block";
+                            nextWordButton.style.display = "none";
                             nextWordButton.disabled = true;
                         }
                     };
@@ -214,18 +214,7 @@
                 }
             }
         }
-        // 点击“下一单词”按钮，更新 currentIndex 并渲染下一个单词
-        nextWordButton.addEventListener("click", () => {
-            const phase = phases[currentPhase];
-            currentIndex++;
 
-            if (currentIndex < phase.content.length) {
-                renderWord();  // 渲染下一个单词
-            } else {
-                currentIndex = 0;  // 重置索引
-                nextPhase();  // 进入下一阶段
-            }
-        });    
         function getRespondentId() {
             let respondentId = localStorage.getItem("respondentId");
             if (!respondentId) {
@@ -237,22 +226,24 @@
 
         nextWordButton.addEventListener("click", () => {
             const phase = phases[currentPhase];
+            console.log(`Next word clicked. Current index: ${currentIndex}, phase content length: ${phase.content.length}`);
+
             currentIndex++;
 
             if (currentIndex < phase.content.length) {
-                renderWord();
+                renderWord();  // Render the next word
             } else {
-                currentIndex = 0;
-                nextPhase();
+                currentIndex = 0;  // Reset index
+                nextPhase();  // Move to next phase
             }
         });
 
         function nextPhase() {
             currentPhase++;
             if (currentPhase < phases.length) {
-                renderInstructions();
+                renderInstructions();  // Render instructions for the next phase
             } else {
-                displayThankYou();
+                displayThankYou();  // End of all phases
             }
         }
 
