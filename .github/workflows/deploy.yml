@@ -3,28 +3,38 @@ name: Build and Deploy Website
 on:
   push:
     branches:
-      - main  
+      - main  # Deploy when changes are pushed to the 'main' branch
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
+      # Step 1: Checkout the code
       - name: Checkout code
         uses: actions/checkout@v2
 
+      # Step 2: Set up Node.js (Version 16, or your preferred version)
       - name: Install Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '16'  
+          node-version: '16'
 
+      # Step 3: Install dependencies (assuming you use npm)
       - name: Install dependencies
-        run: npm install  
+        run: npm install
 
+      # Step 4: Build the project (if you're using a build tool like Webpack, React, or Vue)
       - name: Build project
-        run: npm run build  
+        run: npm run build  # Customize this step if you're using another tool or build script
 
+      # Step 5: Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist  
+          github_token: ${{ secrets.GITHUB_TOKEN }}  # GitHub token for authenticating deployment
+          publish_dir: ./dist  # Directory that contains the built files (adjust if necessary)
+
+      # Optional: Step to clear any unused files or artifacts (you may not need this)
+      - name: Clean up old files
+        run: rm -rf ./old-files  # Adjust based on your needs
