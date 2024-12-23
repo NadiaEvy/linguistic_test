@@ -93,7 +93,7 @@
         <form id="survey-form">
             <div class="form-field">
                 <label for="grade">Grade:</label>
-                <input type="text" id="grade" name="grade" required>
+                <input type="text" id="grade" name="grade" placeholder="e.g., 大一、大二" required>
             </div>
             <div class="form-field">
                 <label for="preferred-accent">Preferred Accent:</label>
@@ -133,13 +133,17 @@
             event.preventDefault(); // Prevent page refresh
 
             const formData = new FormData(event.target);
-            const queryParams = new URLSearchParams();
+            const surveyData = {};
 
-            for (const [key, value] of formData.entries()) {
-                queryParams.append(key, value);
-            }
+            formData.forEach((value, key) => {
+                surveyData[key] = value;
+            });
 
-            window.location.href = `memory_test.html?${queryParams.toString()}`;
+            // Store survey data in localStorage (for passing to the memory test page)
+            localStorage.setItem('surveyData', JSON.stringify(surveyData));
+
+            // Redirect to memory test page
+            window.location.href = '111memotest.html';
         });
     </script>
 </body>
