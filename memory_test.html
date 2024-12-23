@@ -61,7 +61,7 @@
         <div id="instructions" style="display: none;"></div>
         <div id="phase-content" style="display: none;"></div>
         <button id="start-phase-button" style="display: none;">Start Phase</button>
-        <button id="next-word-button" style="display: none;">Next Word</button>
+        <button id="next-word-button" style="display: none;" disabled>Next Word</button>
     </div>
 
     <script>
@@ -121,6 +121,7 @@
             phaseContentDiv.style.display = "none";
             startPhaseButton.style.display = "block";
             nextWordButton.style.display = "none";
+            nextWordButton.disabled = true; // Ensure next word button is disabled at the start
             console.log(`Phase ${currentPhase}: Instructions rendered.`);
         }
 
@@ -145,8 +146,11 @@
                 audio.controls = true;
                 phaseContentDiv.appendChild(audio);
 
-                // Hide next word button initially
+                // Hide next word button until the audio is finished
                 nextWordButton.style.display = "none";
+                audio.onended = () => {
+                    nextWordButton.style.display = "block"; // Show next word button when audio finishes
+                };
             } else {
                 // Display word for recording
                 const wordDiv = document.createElement("div");
@@ -186,7 +190,8 @@
 
                             if (response.ok) {
                                 console.log(`Recording saved for word "${word}" in Phase ${currentPhase + 1}.`);
-                                nextWordButton.style.display = "block";  // Show Next Word button after upload
+                                nextWordButton.disabled = false; // Enable next word button
+                                nextWordButton.style.display = "block";  // Show Next Word button
                             } else {
                                 console.error(`Error uploading recording for "${word}": `, await response.text());
                             }
