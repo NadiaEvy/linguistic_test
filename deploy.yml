@@ -1,0 +1,30 @@
+name: Build and Deploy Website
+
+on:
+  push:
+    branches:
+      - main  # 推送到 main 分支时触发
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'  # 指定 Node.js 版本
+
+      - name: Install dependencies
+        run: npm install  # 如果使用 npm，请安装项目依赖
+
+      - name: Build project
+        run: npm run build  # 使用构建命令
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist  # 部署构建后的目录
