@@ -64,16 +64,23 @@
         <button id="next-word-button" style="display: none;" disabled>Next Word</button>
     </div>
 
-    <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.7.0.min.js"></script>
+    <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.0.2.min.js"></script>
+
     <script>
+        // Fetch survey data from localStorage
         const surveyData = JSON.parse(localStorage.getItem('surveyData')) || {};
+        console.log("Survey Data:", surveyData);
+
         let currentPhase = 0;
         let currentIndex = 0;
         let mediaRecorder;
         let audioStream;
         let audioChunks = [];
         const responses = [];
-        const randomVersion = Math.floor(Math.random() * 4) + 1;
+        const randomVersion = Math.floor(Math.random() * 4) + 1; // Randomly select version 1-4
+
+        console.log(`Random version selected: ${randomVersion}`);
+
         const startTestButton = document.getElementById("start-test-button");
         const instructionsDiv = document.getElementById("instructions");
         const phaseContentDiv = document.getElementById("phase-content");
@@ -92,15 +99,6 @@
             3: "audio/3/word",
             4: "audio/4/word",
         };
-
-        function getRespondentId() {
-            let respondentId = localStorage.getItem("respondentId");
-            if (!respondentId) {
-                respondentId = "resp_" + Date.now();
-                localStorage.setItem("respondentId", respondentId);
-            }
-            return respondentId;
-        }
 
         async function initializeMicrophone() {
             try {
@@ -125,9 +123,6 @@
             phaseContentDiv.style.display = "none";
             startPhaseButton.style.display = "block";
             nextWordButton.style.display = "none";
-            nextWordButton.disabled = true;
-
-            currentIndex = 0;
         }
 
         startPhaseButton.addEventListener("click", () => {
@@ -139,45 +134,44 @@
         function renderWord() {
             const phase = phases[currentPhase];
             const word = phase.content[currentIndex];
+
             phaseContentDiv.innerHTML = "";
             phaseContentDiv.style.display = "block";
 
-            // Handle Phase 2: Audio playback and then show recording button
+            const wordDiv = document.createElement("div");
+            wordDiv.className = "word";
+            wordDiv.textContent = word;
+            phaseContentDiv.appendChild(wordDiv);
+
             if (phase.audio) {
                 const audio = document.createElement("audio");
                 const audioPath = `${versionPaths[randomVersion]}/${word}.mp3`;
                 audio.src = audioPath;
                 audio.controls = true;
                 phaseContentDiv.appendChild(audio);
-
-                // Show the next word button after the audio ends
-                nextWordButton.style.display = "none";
-                audio.onended = () => {
-                    nextWordButton.style.display = "block";
-
-                    const recordButton = document.createElement("button");
-                    recordButton.textContent = "Start Recording";
-                    recordButton.onclick = () => toggleRecording(word, recordButton);
-                    phaseContentDiv.appendChild(recordButton);
-                };
-            } 
-            // Handle Phase 1: Display word and recording button
-            else {
-                const wordDiv = document.createElement("div");
-                wordDiv.className = "word";
-                wordDiv.textContent = word;
-                phaseContentDiv.appendChild(wordDiv);
-
-                if (phase.record) {
-                    const recordButton = document.createElement("button");
-                    recordButton.textContent = "Start Recording";
-                    recordButton.onclick = () => toggleRecording(word, recordButton);
-                    phaseContentDiv.appendChild(recordButton);
-                }
             }
 
-            // Do not show "Next Word" until the current word's task is completed (recording or listening)
-            nextWordButton.style.display = "none";
+            if (phase.record) {
+                const recordButton = document.createElement("button");
+                recordButton.textContent = "Start Recording";
+                recordButton.onclick = () => toggleRecording(word, recordButton);
+                phaseContentDiv.appendChild(recordButton);
+
+                nextWordButton.style.display = "none";
+            } else if (phase.test) {
+                const yesButton = document.createElement("button");
+                yesButton.textContent = "Yes";
+                yesButton.onclick = () => recordResponse(word, true);
+
+                const noButton = document.createElement("button");
+                noButton.textContent = "No";
+                noButton.onclick = () => recordResponse(word, false);
+
+                phaseContentDiv.appendChild(yesButton);
+                phaseContentDiv.appendChild(noButton);
+
+                nextWordButton.style.display = "none";
+            }
         }
 
         function toggleRecording(word, button) {
@@ -192,22 +186,25 @@
                         const fileName = `${respondentId}/recordings/${word}_${Date.now()}.mp3`;
 
                         const client = new OSS({
-                            region: 'oss-rg-china-mainland', 
+                            region: 'oss-rg-china-mainland',  
                             accessKeyId: 'LTAI5tMVY9Jpm2MroinSie5z', 
-                            accessKeySecret: 'BU384EPr4lgFxnBEgwx041JaqSFts6', 
-                            bucket: 'linguisticstest', 
+                            accessKeySecret: 'BU384EPr4lgFxnBEgwx041JaqSFts6',  
+                            bucket: 'linguisticstest',  
                         });
 
                         try {
                             const result = await client.put(fileName, audioBlob);
                             console.log(`Uploaded successfully: ${result.url}`);
 
+                            // After successful upload, show the 'Next Word' button
+                            nextWordButton.style.display = "block";
+                            nextWordButton.disabled = false;
+
+                            // Optionally, send additional data, such as the audio URL
                             const formData = new FormData();
                             formData.append("audioUrl", result.url);
                             formData.append("respondentId", respondentId);
 
-                            nextWordButton.style.display = "block";
-                            nextWordButton.disabled = false;
                         } catch (error) {
                             console.error("Upload failed:", error);
                             nextWordButton.style.display = "none";
@@ -215,18 +212,30 @@
                         }
                     };
 
+                    // Start recording
                     mediaRecorder.start();
                     button.textContent = "Stop Recording";
                 } else {
+                    // Stop recording
                     mediaRecorder.stop();
                     button.textContent = "Start Recording";
                 }
             }
         }
 
+        function getRespondentId() {
+            let respondentId = localStorage.getItem("respondentId");
+            if (!respondentId) {
+                respondentId = "resp_" + Date.now(); // Simple unique ID
+                localStorage.setItem("respondentId", respondentId);
+            }
+            return respondentId;
+        }
+
         nextWordButton.addEventListener("click", () => {
             const phase = phases[currentPhase];
             currentIndex++;
+
             if (currentIndex < phase.content.length) {
                 renderWord();
             } else {
@@ -246,13 +255,11 @@
 
         function displayThankYou() {
             document.getElementById("app").innerHTML = `
-                <div class="thank-you">
-                    Thank you for completing the test! Your data has been saved.
-                </div>`;
+                <div class="thank-you">Thank you for your participation!</div>
+            `;
         }
 
         startTestButton.addEventListener("click", initializeTest);
-
     </script>
 </body>
 </html>
