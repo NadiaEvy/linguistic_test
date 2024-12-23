@@ -189,24 +189,14 @@
 
                             // 将音频 URL 附加到表单数据中
                             const formData = new FormData();
-                            formData.append("audioUrl", result.url);
+                            formData.append("audioUrl", result.url);  // 上传到后端的是 OSS 文件 URL
                             formData.append("phase", currentPhase + 1);
                             formData.append("word", word);
                             formData.append("respondentId", getRespondentId());
                             formData.append("surveyData", JSON.stringify(surveyData));
 
-                            const response = await fetch("http://localhost:3000/api/upload", {
-                                method: "POST",
-                                body: formData,
-                            });
-
-                            if (response.ok) {
-                                console.log(`录音文件保存成功: "${word}"`);
-                                nextWordButton.disabled = false;
-                                nextWordButton.style.display = "block";
-                            } else {
-                                console.error("上传失败:", await response.text());
-                            }
+                            // 将音频的 URL 发送到后端记录（如果需要）
+                            
                         } catch (error) {
                             console.error("上传到 OSS 失败:", error);
                         }
