@@ -53,6 +53,7 @@
             margin-top: 20px;
         }
     </style>
+    <script src="https://cdn.aliyun.com/oss-sdk/oss-sdk.min.js"></script> <!-- 引入 OSS SDK -->
 </head>
 <body>
     <div class="container" id="app">
@@ -65,7 +66,6 @@
     </div>
 
     <script>
-        // Fetch survey data from localStorage
         const surveyData = JSON.parse(localStorage.getItem('surveyData')) || {};
         console.log("Survey Data:", surveyData);  // Log to verify
 
@@ -121,7 +121,7 @@
             phaseContentDiv.style.display = "none";
             startPhaseButton.style.display = "block";
             nextWordButton.style.display = "none";
-            nextWordButton.disabled = true; // Ensure next word button is disabled at the start
+            nextWordButton.disabled = true;
             console.log(`Phase ${currentPhase}: Instructions rendered.`);
         }
 
@@ -139,20 +139,17 @@
             phaseContentDiv.style.display = "block";
 
             if (phase.audio) {
-                // Display audio player for the word
                 const audio = document.createElement("audio");
                 const audioPath = `${versionPaths[randomVersion]}/${word}.mp3`;
                 audio.src = audioPath;
                 audio.controls = true;
                 phaseContentDiv.appendChild(audio);
 
-                // Hide next word button until the audio is finished
                 nextWordButton.style.display = "none";
                 audio.onended = () => {
-                    nextWordButton.style.display = "block"; // Show next word button when audio finishes
+                    nextWordButton.style.display = "block";
                 };
             } else {
-                // Display word for recording
                 const wordDiv = document.createElement("div");
                 wordDiv.className = "word";
                 wordDiv.textContent = word;
@@ -175,36 +172,51 @@
 
                     mediaRecorder.onstop = async () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
-                        const formData = new FormData();
-                        formData.append("audio", audioBlob);  // Correct field name: "audio"
-                        formData.append("phase", currentPhase + 1); // Phase 1 or 2
-                        formData.append("word", word);
-                        formData.append("respondentId", getRespondentId());
-                        formData.append("surveyData", JSON.stringify(surveyData));  // Include survey data
+
+                        // OSS 上传配置
+                        const fileName = `recordings/${word}_${Date.now()}.mp3`;  // OSS 上的文件名
+                        const client = new OSS({
+                            region: 'oss-rg-china-mainland',  // 设置你的 region
+                            accessKeyId: 'LTAI5tMVY9Jpm2MroinSie5z',  // 从阿里云控制台获取
+                            accessKeySecret: 'BU384EPr4lgFxnBEgwx041JaqSFts6',  // 从阿里云控制台获取
+                            bucket: 'linguisticstest',  // 设置你的存储桶名称
+                        });
 
                         try {
-                            const response = await fetch("http://localhost:3000/api/upload", {  // Correct URL
+                            // 上传音频文件到 OSS
+                            const result = await client.put(fileName, audioBlob);
+                            console.log(`上传成功: ${result.url}`);
+
+                            // 将音频 URL 附加到表单数据中
+                            const formData = new FormData();
+                            formData.append("audioUrl", result.url);
+                            formData.append("phase", currentPhase + 1);
+                            formData.append("word", word);
+                            formData.append("respondentId", getRespondentId());
+                            formData.append("surveyData", JSON.stringify(surveyData));
+
+                            const response = await fetch("http://localhost:3000/api/upload", {
                                 method: "POST",
                                 body: formData,
                             });
 
                             if (response.ok) {
-                                console.log(`Recording saved for word "${word}" in Phase ${currentPhase + 1}.`);
-                                nextWordButton.disabled = false; // Enable next word button
-                                nextWordButton.style.display = "block";  // Show Next Word button
+                                console.log(`录音文件保存成功: "${word}"`);
+                                nextWordButton.disabled = false;
+                                nextWordButton.style.display = "block";
                             } else {
-                                console.error(`Error uploading recording for "${word}": `, await response.text());
+                                console.error("上传失败:", await response.text());
                             }
                         } catch (error) {
-                            console.error("Upload failed:", error);
+                            console.error("上传到 OSS 失败:", error);
                         }
                     };
 
                     mediaRecorder.start();
-                    button.textContent = "Stop Recording";
+                    button.textContent = "停止录音";
                 } else {
                     mediaRecorder.stop();
-                    button.textContent = "Start Recording";
+                    button.textContent = "开始录音";
                 }
             }
         }
