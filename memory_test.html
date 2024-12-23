@@ -142,6 +142,7 @@
             phaseContentDiv.innerHTML = "";
             phaseContentDiv.style.display = "block";
 
+            // Handle Phase 2: Audio playback and then show recording button
             if (phase.audio) {
                 const audio = document.createElement("audio");
                 const audioPath = `${versionPaths[randomVersion]}/${word}.mp3`;
@@ -149,6 +150,7 @@
                 audio.controls = true;
                 phaseContentDiv.appendChild(audio);
 
+                // Show the next word button after the audio ends
                 nextWordButton.style.display = "none";
                 audio.onended = () => {
                     nextWordButton.style.display = "block";
@@ -158,7 +160,9 @@
                     recordButton.onclick = () => toggleRecording(word, recordButton);
                     phaseContentDiv.appendChild(recordButton);
                 };
-            } else {
+            } 
+            // Handle Phase 1: Display word and recording button
+            else {
                 const wordDiv = document.createElement("div");
                 wordDiv.className = "word";
                 wordDiv.textContent = word;
@@ -172,9 +176,8 @@
                 }
             }
 
-            if (currentIndex === phase.content.length - 1) {
-                nextWordButton.style.display = "block";
-            }
+            // Do not show "Next Word" until the current word's task is completed (recording or listening)
+            nextWordButton.style.display = "none";
         }
 
         function toggleRecording(word, button) {
@@ -249,6 +252,7 @@
         }
 
         startTestButton.addEventListener("click", initializeTest);
+
     </script>
 </body>
 </html>
