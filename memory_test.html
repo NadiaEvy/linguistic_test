@@ -137,39 +137,29 @@
             phaseContentDiv.innerHTML = "";
             phaseContentDiv.style.display = "block";
 
-            const wordDiv = document.createElement("div");
-            wordDiv.className = "word";
-            wordDiv.textContent = word;
-            phaseContentDiv.appendChild(wordDiv);
-
             if (phase.audio) {
+                // Display audio player for the word
                 const audio = document.createElement("audio");
                 const audioPath = `${versionPaths[randomVersion]}/${word}.mp3`;
                 audio.src = audioPath;
                 audio.controls = true;
                 phaseContentDiv.appendChild(audio);
-            }
 
-            if (phase.record) {
-                const recordButton = document.createElement("button");
-                recordButton.textContent = "Start Recording";
-                recordButton.onclick = () => toggleRecording(word, recordButton);
-                phaseContentDiv.appendChild(recordButton);
-
+                // Hide next word button initially
                 nextWordButton.style.display = "none";
-            } else if (phase.test) {
-                const yesButton = document.createElement("button");
-                yesButton.textContent = "Yes";
-                yesButton.onclick = () => recordResponse(word, true);
+            } else {
+                // Display word for recording
+                const wordDiv = document.createElement("div");
+                wordDiv.className = "word";
+                wordDiv.textContent = word;
+                phaseContentDiv.appendChild(wordDiv);
 
-                const noButton = document.createElement("button");
-                noButton.textContent = "No";
-                noButton.onclick = () => recordResponse(word, false);
-
-                phaseContentDiv.appendChild(yesButton);
-                phaseContentDiv.appendChild(noButton);
-
-                nextWordButton.style.display = "none";
+                if (phase.record) {
+                    const recordButton = document.createElement("button");
+                    recordButton.textContent = "Start Recording";
+                    recordButton.onclick = () => toggleRecording(word, recordButton);
+                    phaseContentDiv.appendChild(recordButton);
+                }
             }
         }
 
@@ -196,7 +186,7 @@
 
                             if (response.ok) {
                                 console.log(`Recording saved for word "${word}" in Phase ${currentPhase + 1}.`);
-                                nextWordButton.style.display = "block";
+                                nextWordButton.style.display = "block";  // Show Next Word button after upload
                             } else {
                                 console.error(`Error uploading recording for "${word}": `, await response.text());
                             }
