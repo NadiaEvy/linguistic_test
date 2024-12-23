@@ -53,7 +53,6 @@
             margin-top: 20px;
         }
     </style>
-    <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.7.0.min.js"></script> <!-- 官方 CDN 地址 -->
 </head>
 <body>
     <div class="container" id="app">
@@ -65,20 +64,16 @@
         <button id="next-word-button" style="display: none;" disabled>Next Word</button>
     </div>
 
+    <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.7.0.min.js"></script> <!-- Official CDN -->
     <script>
         const surveyData = JSON.parse(localStorage.getItem('surveyData')) || {};
-        console.log("Survey Data:", surveyData);  // Log to verify
-
         let currentPhase = 0;
         let currentIndex = 0;
         let mediaRecorder;
         let audioStream;
         let audioChunks = [];
         const responses = [];
-        const randomVersion = Math.floor(Math.random() * 4) + 1; // Randomly select version 1-4
-
-        console.log(`Random version selected: ${randomVersion}`);
-
+        const randomVersion = Math.floor(Math.random() * 4) + 1;
         const startTestButton = document.getElementById("start-test-button");
         const instructionsDiv = document.getElementById("instructions");
         const phaseContentDiv = document.getElementById("phase-content");
@@ -98,6 +93,17 @@
             4: "audio/4",
         };
 
+        // Generate a unique respondent ID
+        function getRespondentId() {
+            let respondentId = localStorage.getItem("respondentId");
+            if (!respondentId) {
+                respondentId = "resp_" + Date.now(); // Simple unique ID
+                localStorage.setItem("respondentId", respondentId);
+            }
+            return respondentId;
+        }
+
+        // Initialize the microphone and start the test
         async function initializeMicrophone() {
             try {
                 audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -122,7 +128,6 @@
             startPhaseButton.style.display = "block";
             nextWordButton.style.display = "none";
             nextWordButton.disabled = true;
-            console.log(`Phase ${currentPhase}: Instructions rendered.`);
         }
 
         startPhaseButton.addEventListener("click", () => {
@@ -134,7 +139,6 @@
         function renderWord() {
             const phase = phases[currentPhase];
             const word = phase.content[currentIndex];
-
             phaseContentDiv.innerHTML = "";
             phaseContentDiv.style.display = "block";
 
@@ -147,7 +151,6 @@
 
                 nextWordButton.style.display = "none";
                 audio.onended = () => {
-                    console.log("Audio ended, showing next word button");
                     nextWordButton.style.display = "block";
                 };
             } else {
@@ -163,6 +166,10 @@
                     phaseContentDiv.appendChild(recordButton);
                 }
             }
+
+            if (currentIndex === phase.content.length - 1) {
+                nextWordButton.style.display = "block";
+            }
         }
 
         function toggleRecording(word, button) {
@@ -173,87 +180,74 @@
 
                     mediaRecorder.onstop = async () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
+                        const respondentId = getRespondentId();
+                        const fileName = `${respondentId}/recordings/${word}_${Date.now()}.mp3`;
 
-                        // OSS 上传配置
-                        const fileName = `recordings/${word}_${Date.now()}.mp3`;  // OSS 上的文件名
+                        // OSS upload configuration
                         const client = new OSS({
-                            region: 'oss-rg-china-mainland',  // 设置你的 region
-                            accessKeyId: 'LTAI5tMVY9Jpm2MroinSie5z',  // 从阿里云控制台获取
-                            accessKeySecret: 'BU384EPr4lgFxnBEgwx041JaqSFts6',  // 从阿里云控制台获取
-                            bucket: 'linguisticstest',  // 设置你的存储桶名称
+                            region: 'oss-rg-china-mainland', 
+                            accessKeyId: 'LTAI5tMVY9Jpm2MroinSie5z', 
+                            accessKeySecret: 'BU384EPr4lgFxnBEgwx041JaqSFts6', 
+                            bucket: 'linguisticstest', 
                         });
 
                         try {
-                            // 上传音频文件到 OSS
+                            // Upload the audio file under the respondent's folder
                             const result = await client.put(fileName, audioBlob);
-                            console.log(`上传成功: ${result.url}`);
+                            console.log(`Uploaded successfully: ${result.url}`);
 
-                            // 将音频 URL 附加到表单数据中
+                            // Save the URL with respondent ID
                             const formData = new FormData();
-                            formData.append("audioUrl", result.url);  // 上传到后端的是 OSS 文件 URL
-                            formData.append("phase", currentPhase + 1);
-                            formData.append("word", word);
-                            formData.append("respondentId", getRespondentId());
-                            formData.append("surveyData", JSON.stringify(surveyData));
+                            formData.append("audioUrl", result.url);
+                            formData.append("respondentId", respondentId);
 
-                            // 这里如果上传成功，显示“下一单词”按钮
                             nextWordButton.style.display = "block";
                             nextWordButton.disabled = false;
                         } catch (error) {
-                            console.error("上传到 OSS 失败:", error);
+                            console.error("Upload failed:", error);
                             nextWordButton.style.display = "none";
                             nextWordButton.disabled = true;
                         }
                     };
 
                     mediaRecorder.start();
-                    button.textContent = "停止录音";
+                    button.textContent = "Stop Recording";
                 } else {
                     mediaRecorder.stop();
-                    button.textContent = "开始录音";
+                    button.textContent = "Start Recording";
                 }
             }
         }
 
-        function getRespondentId() {
-            let respondentId = localStorage.getItem("respondentId");
-            if (!respondentId) {
-                respondentId = "resp_" + Date.now(); // Simple unique ID
-                localStorage.setItem("respondentId", respondentId);
-            }
-            return respondentId;
-        }
-
         nextWordButton.addEventListener("click", () => {
             const phase = phases[currentPhase];
-            console.log(`Next word clicked. Current index: ${currentIndex}, phase content length: ${phase.content.length}`);
-
             currentIndex++;
-
             if (currentIndex < phase.content.length) {
-                renderWord();  // Render the next word
+                renderWord();
             } else {
-                currentIndex = 0;  // Reset index
-                nextPhase();  // Move to next phase
+                currentIndex = 0;
+                nextPhase();
             }
         });
 
         function nextPhase() {
             currentPhase++;
             if (currentPhase < phases.length) {
-                renderInstructions();  // Render instructions for the next phase
+                renderInstructions();
             } else {
-                displayThankYou();  // End of all phases
+                displayThankYou();
             }
         }
 
         function displayThankYou() {
             document.getElementById("app").innerHTML = `
-                <div class="thank-you">Thank you for your participation!</div>
-            `;
+                <div class="thank-you">
+                    Thank you for completing the test! Your data has been saved.
+                </div>`;
         }
 
         startTestButton.addEventListener("click", initializeTest);
+
     </script>
 </body>
 </html>
