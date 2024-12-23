@@ -64,7 +64,7 @@
         <button id="next-word-button" style="display: none;" disabled>Next Word</button>
     </div>
 
-    <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.7.0.min.js"></script> <!-- Official CDN -->
+    <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.7.0.min.js"></script>
     <script>
         const surveyData = JSON.parse(localStorage.getItem('surveyData')) || {};
         let currentPhase = 0;
@@ -93,17 +93,15 @@
             4: "audio/4/word",
         };
 
-        // Generate a unique respondent ID
         function getRespondentId() {
             let respondentId = localStorage.getItem("respondentId");
             if (!respondentId) {
-                respondentId = "resp_" + Date.now(); // Simple unique ID
+                respondentId = "resp_" + Date.now();
                 localStorage.setItem("respondentId", respondentId);
             }
             return respondentId;
         }
 
-        // Initialize the microphone and start the test
         async function initializeMicrophone() {
             try {
                 audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -128,6 +126,8 @@
             startPhaseButton.style.display = "block";
             nextWordButton.style.display = "none";
             nextWordButton.disabled = true;
+
+            currentIndex = 0;
         }
 
         startPhaseButton.addEventListener("click", () => {
@@ -152,6 +152,11 @@
                 nextWordButton.style.display = "none";
                 audio.onended = () => {
                     nextWordButton.style.display = "block";
+
+                    const recordButton = document.createElement("button");
+                    recordButton.textContent = "Start Recording";
+                    recordButton.onclick = () => toggleRecording(word, recordButton);
+                    phaseContentDiv.appendChild(recordButton);
                 };
             } else {
                 const wordDiv = document.createElement("div");
@@ -183,7 +188,6 @@
                         const respondentId = getRespondentId();
                         const fileName = `${respondentId}/recordings/${word}_${Date.now()}.mp3`;
 
-                        // OSS upload configuration
                         const client = new OSS({
                             region: 'oss-rg-china-mainland', 
                             accessKeyId: 'LTAI5tMVY9Jpm2MroinSie5z', 
@@ -192,11 +196,9 @@
                         });
 
                         try {
-                            // Upload the audio file under the respondent's folder
                             const result = await client.put(fileName, audioBlob);
                             console.log(`Uploaded successfully: ${result.url}`);
 
-                            // Save the URL with respondent ID
                             const formData = new FormData();
                             formData.append("audioUrl", result.url);
                             formData.append("respondentId", respondentId);
@@ -247,7 +249,6 @@
         }
 
         startTestButton.addEventListener("click", initializeTest);
-
     </script>
 </body>
 </html>
