@@ -162,7 +162,8 @@
         function startRecording() {
             const word = phases[currentPhase].content[currentIndex];
             const button = document.getElementById("start-recording");
-
+            const nextWordButton = document.getElementById("next-word-button");
+        
             if (button.textContent === "Start Recording") {
                 navigator.mediaDevices.getUserMedia({ audio: true })
                     .then(stream => {
@@ -176,22 +177,30 @@
                             const audioUrl = URL.createObjectURL(audioBlob);
                             const audio = new Audio(audioUrl);
                             audio.play();
-
-                            // Save the file with version and word name
-                            const fileName = `${respondentID}-phase${currentPhase + 1}-version${randomVersion}-${word}.mp3`;
-
-                            uploadAudioToOSS(audioBlob, fileName);
+        
+                            // 启用 "Next Word" 按钮
+                            nextWordButton.style.display = 'block';
+                            nextWordButton.disabled = false;
+        
+                            const formData = new FormData();
+                            formData.append("file", audioBlob, `${word}.mp3`);
+                            formData.append("word", word);
+                            formData.append("version", randomVersion);
+                            formData.append("respondentID", localStorage.getItem("respondentID"));
+        
+                            // Upload logic here
+                            alert("Recording saved!");
                         };
-
+        
                         mediaRecorder.start();
                         button.textContent = "Stop Recording";
                     });
             } else {
                 mediaRecorder.stop();
                 button.textContent = "Start Recording";
-                nextWordButton.style.display = "block";
             }
         }
+
 
         function nextWord() {
             currentIndex++;
