@@ -47,8 +47,9 @@ jobs:
         # Verify the installation by running help (instead of version)
         ossutil help
 
-    - name: Configure OSS CLI
+    - name: Configure OSS CLI with Secrets
       run: |
+        # Ensure secrets are correctly passed to the command
         ossutil config --access-key-id ${{ secrets.OSS_ACCESS_KEY_ID }} --access-key-secret ${{ secrets.OSS_ACCESS_KEY_SECRET }} --endpoint ${{ secrets.OSS_ENDPOINT }}
 
     - name: Deploy to OSS (or other static hosting platform)
