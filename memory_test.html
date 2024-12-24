@@ -81,8 +81,8 @@
         const nextWordButton = document.getElementById("next-word-button");
 
         const phases = [
-            { instructions: "Read aloud! Pronounce the word and record.", content: ["pit", "pat", "pot", "tip", "tap", "top"], record: true },
-            { instructions: "Follow the audio! Pronounce after hearing.", content: ["pit", "pat", "pot", "tip", "tap", "top"], audio: true, record: true },
+            { instructions: "Read aloud! This will help you memorize them better！", content: ["pit", "pat", "pot", "tip", "tap", "top"], record: true },
+            { instructions: "Follow the audio! he/she is willing to enhance your memory!", content: ["pit", "pat", "pot", "tip", "tap", "top"], audio: true, record: true },
             { instructions: "Memory test! Have you seen this word?", content: ["cat", "tip", "cop", "pick", "pat"], test: true },
         ];
 
@@ -204,15 +204,14 @@
                     mediaRecorder.onstop = async () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
                         const respondentId = getRespondentId();
-                        const grade = surveyData.grade || 'Unknown';
-                        const startAge = surveyData['learning-start'] || 'Unknown';
-                        const accent = surveyData['preferred-accent'] || 'Unknown';
-                        const languages = surveyData['languages'] || 'Unknown';
-                        const dialects = surveyData['dialects'] || 'Unknown';
+
+                        // Build folder path using survey data
+                        const { grade, "preferred-accent": accent, gender, "learning-start": startAge, languages, dialects } = surveyData;
+                        const folderPath = `${grade}_${accent}_${gender}_${startAge}_${languages}_${dialects}/`;
 
                         const phaseFolder = `phase${currentPhase + 1}`;  // e.g., phase1, phase2
                         const versionFolder = `v${randomVersion}`; // v1, v2, v3, v4
-                        const fileName = `${respondentId}/${grade}_${startAge}_${accent}_${languages}_${dialects}/${phaseFolder}/${versionFolder}/${word}_${Date.now()}.mp3`;
+                        const fileName = `${respondentId}/${folderPath}${phaseFolder}/${versionFolder}/${word}_${Date.now()}.mp3`;
 
                         const client = new OSS({
                             region: 'oss-rg-china-mainland',
@@ -278,7 +277,7 @@
         function displayThankYou() {
             document.getElementById("app").innerHTML = `
                 <div class="thank-you">
-                    Thank you for completing the test! Your data has been saved.
+                    Well done!Thank you for your participation.
                 </div>`;
         }
 
