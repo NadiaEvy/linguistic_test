@@ -32,27 +32,29 @@ jobs:
 
     - name: Install Aliyun OSS CLI (Corrected Method)
       run: |
-        # Install dependencies for building and downloading
+        # Install dependencies
         sudo apt-get update && sudo apt-get install -y wget curl unzip
 
-        # Download the latest OSS CLI release from GitHub
-        wget https://github.com/aliyun/aliyun-oss-cli/releases/download/v3.0.0/aliyun-oss-cli-linux-amd64-v3.0.0.tar.gz
+        # Download the OSS CLI using a correct installation method (via Aliyun)
+        wget https://gosspublic.alicdn.com/ossutil/1.7.0/ossutil64 -O ossutil
 
-        # Extract and move the binary to a directory in your $PATH (e.g., /usr/local/bin)
-        tar -xzvf aliyun-oss-cli-linux-amd64-v3.0.0.tar.gz
-        sudo mv aliyun-oss-cli-linux-amd64 /usr/local/bin/aliyun-oss-cli
+        # Grant execute permissions
+        chmod +x ossutil
 
-        # Verify OSS CLI is installed correctly
-        aliyun-oss-cli --version
+        # Move it to a directory in your PATH
+        sudo mv ossutil /usr/local/bin/
+
+        # Verify the installation
+        ossutil version
 
     - name: Configure OSS CLI
       run: |
-        aliyun oss config --access-key-id ${{ secrets.OSS_ACCESS_KEY_ID }} --access-key-secret ${{ secrets.OSS_ACCESS_KEY_SECRET }} --endpoint ${{ secrets.OSS_ENDPOINT }}
+        ossutil config --access-key-id ${{ secrets.OSS_ACCESS_KEY_ID }} --access-key-secret ${{ secrets.OSS_ACCESS_KEY_SECRET }} --endpoint ${{ secrets.OSS_ENDPOINT }}
 
     - name: Deploy to OSS (or other static hosting platform)
       run: |
         # Upload files to your OSS bucket (adjust path to your actual files)
-        aliyun oss cp --recursive ./path/to/your/files oss://your-bucket-name/
+        ossutil cp --recursive ./path/to/your/files oss://your-bucket-name/
 
     - name: Finalize Deployment
       run: |
