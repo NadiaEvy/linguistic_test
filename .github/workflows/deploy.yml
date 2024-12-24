@@ -12,19 +12,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Install Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '16'  
+      - name: Install dependencies (optional if needed)
+        run: npm install  # Only if you need to install dependencies
 
-      - name: Install dependencies
-        run: npm install  
-
-      - name: Build project
-        run: npm run build  # Ensure your build process includes the .html file in the `./dist` directory
+      - name: Copy files to dist
+        run: |
+          mkdir -p dist
+          cp -r * dist/
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist  # This should be the directory where your .html file ends up
+          publish_dir: ./dist
