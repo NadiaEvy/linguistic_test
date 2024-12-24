@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Memory Test</title>
-    <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -65,91 +64,94 @@
         <button id="next-word-button" style="display: none;" disabled>Next Word</button>
     </div>
 
-    <!-- 确保 OSS SDK 在调用之前加载 -->
     <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.0.2.min.js"></script>
 
     <script>
-        // 确保 OSS 对象可用
-        if (typeof OSS === 'undefined') {
-            console.error("OSS SDK is not loaded correctly!");
-        }
+        // Fetch survey data from localStorage
+        const surveyData = JSON.parse(localStorage.getItem('surveyData')) || {};
+        console.log("Survey Data:", surveyData);
 
-        // 获取 version 和 respondentId
-        const urlParams = new URLSearchParams(window.location.search);
-        const version = urlParams.get('version') || 1; // 默认使用版本 1
-        let respondentId = localStorage.getItem("respondentId");
+        let currentPhase = 0;
+        let currentIndex = 0;
+        let mediaRecorder;
+        let audioStream;
+        let audioChunks = [];
+        const responses = [];
+        const randomVersion = Math.floor(Math.random() * 4) + 1; // Randomly select version 1-4
 
-        if (!respondentId) {
-            alert("Respondent ID not found. Please complete the survey first.");
-            window.location.href = 'index.html';
-        }
+        console.log(`Random version selected: ${randomVersion}`);
 
-        const words = ['cat', 'dog', 'fish', 'bird', 'elephant'];  // 示例单词列表
-        let currentWordIndex = 0;
-        let audioBlob = null; // 占位符，用于录制的音频
+        const startTestButton = document.getElementById("start-test-button");
+        const instructionsDiv = document.getElementById("instructions");
+        const phaseContentDiv = document.getElementById("phase-content");
+        const startPhaseButton = document.getElementById("start-phase-button");
+        const nextWordButton = document.getElementById("next-word-button");
 
-        document.getElementById("start-test-button").addEventListener("click", function() {
-            document.getElementById("start-test-button").style.display = "none";
-            document.getElementById("instructions").style.display = "block";
-            document.getElementById("instructions").textContent = "You will now hear words to repeat.";
-            document.getElementById("start-phase-button").style.display = "block";
+        const phases = [
+            { instructions: "Read aloud! Pronounce the word and record.", content: ["pit", "pat", "pot", "tip", "tap", "top"], record: true },
+            { instructions: "Follow the audio! Pronounce after hearing.", content: ["pit", "pat", "pot", "tip", "tap", "top"], audio: true, record: true },
+            { instructions: "Memory test! Have you seen this word?", content: ["cat", "tip", "cop", "pick", "pat"], test: true },
+        ];
+
+        const versionPaths = {
+            1: "audio/1/word",
+            2: "audio/2/word",
+            3: "audio/3/word",
+            4: "audio/4/word"
+        };
+
+        startTestButton.addEventListener("click", () => {
+            instructionsDiv.innerHTML = `<p>Survey Data: ${JSON.stringify(surveyData)}</p>`;
+            instructionsDiv.style.display = "block";
+            startTestButton.style.display = "none";
+            startPhaseButton.style.display = "block";
         });
 
-        document.getElementById("start-phase-button").addEventListener("click", function() {
-            document.getElementById("instructions").style.display = "none";
-            document.getElementById("phase-content").style.display = "block";
-            document.getElementById("next-word-button").style.display = "block";
-            startRecording();
-        });
-
-        document.getElementById("next-word-button").addEventListener("click", function() {
-            if (currentWordIndex < words.length) {
-                let word = words[currentWordIndex];
-                document.getElementById("phase-content").textContent = `Please say the word: ${word}`;
-                currentWordIndex++;
-                startRecording();
-            } else {
-                alert("Test completed! Uploading recordings...");
-                // 上传音频文件到 OSS
-                uploadRecording();
+        startPhaseButton.addEventListener("click", () => {
+            if (currentPhase < phases.length) {
+                startPhase();
             }
         });
 
-        function startRecording() {
-            // 启动录音的占位函数
-            // 这里可以集成实际的录音 API
-            console.log("Recording started for word:", words[currentWordIndex - 1]);
-            // 模拟录音的延迟
-            setTimeout(() => {
-                audioBlob = new Blob([], { type: 'audio/mp3' }); // 模拟录制的音频 Blob
-                document.getElementById("next-word-button").disabled = false; // 启用下一个按钮
-            }, 3000);  // 示例：3 秒钟
+        function startPhase() {
+            const phase = phases[currentPhase];
+            instructionsDiv.innerHTML = `<p>${phase.instructions}</p>`;
+            instructionsDiv.style.display = "block";
+            startPhaseButton.style.display = "none";
+            phaseContentDiv.style.display = "block";
+            displayWord();
         }
 
-        function uploadRecording() {
-            // 初始化 OSS 客户端
-            const client = new OSS({
-                region: 'oss-rg-china-mainland',  
-                accessKeyId: 'LTAI5tMVY9Jpm2MroinSie5z', 
-                accessKeySecret: 'BU384EPr4lgFxnBEgwx041JaqSFts6',  
-                bucket: 'linguisticstest',  
-            });
-
-            const fileNamePhase1 = `${respondentId}/phase1/pit_version${version}_${Date.now()}.mp3`;
-            const fileNamePhase2 = `${respondentId}/phase2/pit_version${version}_${Date.now()}.mp3`;
-
-            client.put(fileNamePhase1, audioBlob).then(result => {
-                console.log(`Phase 1 audio uploaded successfully: ${result.url}`);
-            }).catch(err => {
-                console.error("Phase 1 upload failed:", err);
-            });
-
-            client.put(fileNamePhase2, audioBlob).then(result => {
-                console.log(`Phase 2 audio uploaded successfully: ${result.url}`);
-            }).catch(err => {
-                console.error("Phase 2 upload failed:", err);
-            });
+        function displayWord() {
+            const phase = phases[currentPhase];
+            if (phase.content && currentIndex < phase.content.length) {
+                const word = phase.content[currentIndex];
+                phaseContentDiv.innerHTML = `<div class="word">${word}</div>`;
+                nextWordButton.style.display = "block";
+            }
         }
+
+        nextWordButton.addEventListener("click", () => {
+            currentIndex++;
+            if (currentIndex < phases[currentPhase].content.length) {
+                displayWord();
+            } else {
+                finishPhase();
+            }
+        });
+
+        function finishPhase() {
+            currentPhase++;
+            if (currentPhase < phases.length) {
+                startPhase();
+            } else {
+                alert("Test Completed!");
+                nextWordButton.style.display = "none";
+            }
+        }
+
+        // Handle audio recording logic here...
+
     </script>
 </body>
 </html>
