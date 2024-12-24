@@ -1,28 +1,48 @@
-name: Deploy to GitHub Pages
+name: Deploy Memory Test Project
 
 on:
   push:
     branches:
-      - main  # Trigger when changes are pushed to the main branch
+      - main # Deploy only from the main branch
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest  # Run on the latest Ubuntu
+    runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the code
-      - name: Checkout code
-        uses: actions/checkout@v2
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      # Step 2: Set up Git config
-      - name: Set up Git
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
+    - name: Set up Node.js (if needed for a build step, though it's not required for your static HTML/CSS/JS)
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
 
-      # Step 3: Deploy to GitHub Pages
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GH_TOKEN }}  # Use the custom token instead of GITHUB_TOKEN
-          publish_dir: ./dist  # Assuming the build output is in the 'dist' directory, change this if needed
+    - name: Install dependencies
+      run: |
+        if [ -f package.json ]; then
+          npm install
+        fi
+
+    - name: Build (if needed)
+      run: |
+        if [ -f build ]; then
+          npm run build
+        fi
+
+    - name: Deploy to OSS (or other static hosting platform)
+      run: |
+        # Assuming you're deploying to an OSS bucket or S3 bucket
+        # Install the necessary CLI for the platform you're using
+        # Example for deploying to Aliyun OSS:
+        curl -sSL https://gosspublic.alicdn.com/aliyun-oss-cli/aliyun-oss-cli-linux-amd64.tar.gz | tar -xz -C /usr/local/bin
+
+        # Configure OSS CLI
+        aliyun oss config --access-key-id ${{ secrets.OSS_ACCESS_KEY_ID }} --access-key-secret ${{ secrets.OSS_ACCESS_KEY_SECRET }} --endpoint ${{ secrets.OSS_ENDPOINT }}
+
+        # Upload files to your OSS bucket (adjust path to your actual files)
+        aliyun oss cp --recursive ./path/to/your/files oss://your-bucket-name/
+
+    - name: Finalize Deployment
+      run: |
+        echo "Deployment completed successfully!"
