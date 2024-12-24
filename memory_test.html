@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Memory Test</title>
+    <link rel="icon" href="data:,"> <!-- Avoid 404 error by specifying an empty favicon -->
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -179,9 +180,7 @@
                             formData.append("version", randomVersion);
                             formData.append("respondentID", localStorage.getItem("respondentID"));
 
-                            // Upload the recording to OSS
-                            uploadAudioToOSS(audioBlob, `${word}.mp3`);
-
+                            // Your upload logic goes here
                             alert("Recording saved!");
                         };
 
@@ -193,23 +192,6 @@
                 button.textContent = "Start Recording";
                 nextWordButton.style.display = "block";
             }
-        }
-
-        function uploadAudioToOSS(audioBlob, filename) {
-            const client = new OSS.Wrapper({
-                region: 'oss-rg-china-mainland',
-                accessKeyId: 'LTAI5tMVY9Jpm2MroinSie5z',
-                accessKeySecret: 'BU384EPr4lgFxnBEgwx041JaqSFts6',
-                bucket: 'linguisticstest',
-            });
-
-            const filePath = `audio/${randomVersion}/${filename}`;
-
-            client.put(filePath, audioBlob).then(result => {
-                console.log('Upload success:', result);
-            }).catch(err => {
-                console.error('Upload failed:', err);
-            });
         }
 
         function nextWord() {
