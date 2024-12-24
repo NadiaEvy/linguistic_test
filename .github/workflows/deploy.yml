@@ -55,7 +55,7 @@ jobs:
     - name: Deploy to OSS (or other static hosting platform)
       run: |
         # Upload files to your OSS bucket (adjust path to your actual files)
-        ossutil cp --recursive ./phonetics oss://linguisticstest/
+        ossutil cp --recursive ./ oss://linguisticstest/
 
     - name: Finalize Deployment
       run: |
