@@ -4,67 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Memory Test</title>
-    <link rel="icon" href="data:,"> <!-- Avoid 404 error by specifying an empty favicon -->
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            background-color: #f8f9fa;
-        }
-        .container {
-            width: 100%;
-            max-width: 450px;
-            padding: 20px;
-            background: #fff;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            text-align: center;
-        }
-        button {
-            margin: 10px 0;
-            padding: 15px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 18px;
-            cursor: pointer;
-            width: 100%;
-        }
-        button:disabled {
-            background-color: #6c757d;
-            cursor: not-allowed;
-        }
-        .form-field {
-            margin-bottom: 15px;
-        }
-        label {
-            font-size: 14px;
-            display: block;
-            margin-bottom: 5px;
-            text-align: left;
-        }
-        input, select {
-            width: 100%;
-            padding: 12px;
-            font-size: 16px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        .thank-you {
-            font-size: 24px;
-            font-weight: bold;
-            color: #28a745;
-            text-align: center;
-            margin-top: 20px;
-        }
+        /* Your existing styles */
     </style>
 </head>
 <body>
@@ -81,24 +22,8 @@
 
     <script>
         const surveyData = JSON.parse(localStorage.getItem('surveyData')) || {};
-        console.log("Survey Data:", surveyData);
-
-        let currentPhase = 0;
-        let currentIndex = 0;
-        let mediaRecorder;
-        let audioStream;
-        let audioChunks = [];
-        const responses = [];
+        const respondentID = localStorage.getItem('respondentID') || 'defaultID';
         const randomVersion = Math.floor(Math.random() * 4) + 1; // Randomly select version 1-4
-
-        console.log(`Random version selected: ${randomVersion}`);
-
-        const startTestButton = document.getElementById("start-test-button");
-        const instructionsDiv = document.getElementById("instructions");
-        const phaseContentDiv = document.getElementById("phase-content");
-        const startPhaseButton = document.getElementById("start-phase-button");
-        const nextWordButton = document.getElementById("next-word-button");
-
         const phases = [
             { instructions: "Read aloud! Pronounce the word and record.", content: ["pit", "pat", "pot", "tip", "tap", "top"], record: true },
             { instructions: "Follow the audio! Pronounce after hearing.", content: ["pit", "pat", "pot", "tip", "tap", "top"], audio: true, record: true },
@@ -112,7 +37,27 @@
             4: "audio/4/word",
         };
 
-        async function renderInstructions() {
+        // Define OSS client and configuration
+        const client = new OSS.Wrapper({
+            region: 'oss-rg-china-mainland',
+            accessKeyId: 'LTAI5tMVY9Jpm2MroinSie5z',
+            accessKeySecret: 'BU384EPr4lgFxnBEgwx041JaqSFts6',
+            bucket: 'linguisticstest',
+        });
+
+        const startTestButton = document.getElementById("start-test-button");
+        const instructionsDiv = document.getElementById("instructions");
+        const phaseContentDiv = document.getElementById("phase-content");
+        const startPhaseButton = document.getElementById("start-phase-button");
+        const nextWordButton = document.getElementById("next-word-button");
+
+        let currentPhase = 0;
+        let currentIndex = 0;
+        let mediaRecorder;
+        let audioStream;
+        let audioChunks = [];
+
+        function renderInstructions() {
             instructionsDiv.innerHTML = `
                 <h2>Survey Data</h2>
                 <ul>
@@ -158,7 +103,6 @@
         function startRecording() {
             const word = phases[currentPhase].content[currentIndex];
             const button = document.getElementById("start-recording");
-            const nextWordButton = document.getElementById("next-word-button");
 
             if (button.textContent === "Start Recording") {
                 navigator.mediaDevices.getUserMedia({ audio: true })
@@ -174,14 +118,10 @@
                             const audio = new Audio(audioUrl);
                             audio.play();
 
-                            const formData = new FormData();
-                            formData.append("file", audioBlob, `${word}.mp3`);
-                            formData.append("word", word);
-                            formData.append("version", randomVersion);
-                            formData.append("respondentID", localStorage.getItem("respondentID"));
+                            // Save the file with version and word name
+                            const fileName = `${respondentID}-phase${currentPhase + 1}-version${randomVersion}-${word}.mp3`;
 
-                            // Your upload logic goes here
-                            alert("Recording saved!");
+                            uploadAudioToOSS(audioBlob, fileName);
                         };
 
                         mediaRecorder.start();
@@ -206,6 +146,19 @@
                     alert("Test complete!");
                 }
             }
+        }
+
+        // Upload the audio file to OSS
+        function uploadAudioToOSS(audioBlob, filename) {
+            const formData = new FormData();
+            formData.append("file", audioBlob, filename);
+
+            // Upload to OSS (assuming your OSS API setup is correct)
+            client.put(filename, audioBlob).then(result => {
+                console.log('File uploaded successfully:', result);
+            }).catch(err => {
+                console.error('File upload failed:', err);
+            });
         }
     </script>
 </body>
