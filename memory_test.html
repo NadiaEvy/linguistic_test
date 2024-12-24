@@ -66,11 +66,13 @@
 
     <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.7.0.min.js"></script>
     <script>
+        const surveyData = JSON.parse(localStorage.getItem('surveyData')) || {};
         let currentPhase = 0;
         let currentIndex = 0;
         let mediaRecorder;
         let audioStream;
         let audioChunks = [];
+        const responses = [];
         const randomVersion = Math.floor(Math.random() * 4) + 1;
         const startTestButton = document.getElementById("start-test-button");
         const instructionsDiv = document.getElementById("instructions");
@@ -180,16 +182,17 @@
 
                 const yesButton = document.createElement("button");
                 yesButton.textContent = "Yes";
-                yesButton.onclick = () => nextWord();
+                yesButton.onclick = nextWord;  // Ensure nextWord is accessible
 
                 const noButton = document.createElement("button");
                 noButton.textContent = "No";
-                noButton.onclick = () => nextWord();
+                noButton.onclick = nextWord;  // Ensure nextWord is accessible
 
                 phaseContentDiv.appendChild(yesButton);
                 phaseContentDiv.appendChild(noButton);
-            // Do not show "Next Word" until the current word's task is completed (recording or listening)
-            nextWordButton.style.display = "none";
+            }
+
+            nextWordButton.style.display = "none";  // Hide "Next Word" until task completion
         }
 
         function toggleRecording(word, button) {
@@ -236,21 +239,45 @@
         }
 
         nextWordButton.addEventListener("click", () => {
+            const phase = phases[currentPhase];
             currentIndex++;
-            if (currentIndex >= phases[currentPhase].content.length) {
-                currentPhase++;
-                if (currentPhase >= phases.length) {
-                    // End of all phases
-                    document.body.innerHTML = `<div class="thank-you">Thank you for completing the test!</div>`;
-                    return;
-                }
-                renderInstructions();
-            } else {
+            if (currentIndex < phase.content.length) {
                 renderWord();
+            } else {
+                currentIndex = 0;
+                nextPhase();
             }
         });
 
+        function nextWord() {
+            const phase = phases[currentPhase];
+            currentIndex++;
+            if (currentIndex < phase.content.length) {
+                renderWord();
+            } else {
+                currentIndex = 0;
+                nextPhase();
+            }
+        }
+
+        function nextPhase() {
+            currentPhase++;
+            if (currentPhase < phases.length) {
+                renderInstructions();
+            } else {
+                displayThankYou();
+            }
+        }
+
+        function displayThankYou() {
+            document.getElementById("app").innerHTML = `
+                <div class="thank-you">
+                    Thank you for completing the test! Your data has been saved.
+                </div>`;
+        }
+
         startTestButton.addEventListener("click", initializeTest);
+
     </script>
 </body>
 </html>
