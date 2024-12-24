@@ -30,14 +30,20 @@ jobs:
           npm run build
         fi
 
-    - name: Install Aliyun OSS CLI (Corrected)
+    - name: Install Aliyun OSS CLI (Corrected Method)
       run: |
-        # Download the OSS CLI tarball (correct URL) and extract it
-        wget https://gosspublic.alicdn.com/aliyun-oss-cli/aliyun-oss-cli-linux-amd64-3.0.0.tar.gz
-        tar -xvzf aliyun-oss-cli-linux-amd64-3.0.0.tar.gz -C /usr/local/bin
+        # Install dependencies for building and downloading
+        sudo apt-get update && sudo apt-get install -y wget curl unzip
 
-        # Verify the OSS CLI installation
-        aliyun oss --help
+        # Download the latest OSS CLI release from GitHub
+        wget https://github.com/aliyun/aliyun-oss-cli/releases/download/v3.0.0/aliyun-oss-cli-linux-amd64-v3.0.0.tar.gz
+
+        # Extract and move the binary to a directory in your $PATH (e.g., /usr/local/bin)
+        tar -xzvf aliyun-oss-cli-linux-amd64-v3.0.0.tar.gz
+        sudo mv aliyun-oss-cli-linux-amd64 /usr/local/bin/aliyun-oss-cli
+
+        # Verify OSS CLI is installed correctly
+        aliyun-oss-cli --version
 
     - name: Configure OSS CLI
       run: |
