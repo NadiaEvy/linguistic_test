@@ -184,13 +184,13 @@
                     mediaRecorder.onstop = async () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
                         const respondentId = getRespondentId();
-                        const fileName = `${respondentId}/recordings/${word}_${Date.now()}.mp3`;
+                        const fileName = `${respondentId}/phase${currentPhase + 1}/${word}/${Date.now()}.mp3`;
 
                         const client = new OSS({
-                            region: 'oss-rg-china-mainland',  
-                            accessKeyId: 'LTAI5tMVY9Jpm2MroinSie5z', 
-                            accessKeySecret: 'BU384EPr4lgFxnBEgwx041JaqSFts6',  
-                            bucket: 'linguisticstest',  
+                            region: 'oss-rg-china-mainland',
+                            accessKeyId: 'LTAI5tMVY9Jpm2MroinSie5z',
+                            accessKeySecret: 'BU384EPr4lgFxnBEgwx041JaqSFts6',
+                            bucket: 'linguisticstest',
                         });
 
                         try {
@@ -205,7 +205,6 @@
                             const formData = new FormData();
                             formData.append("audioUrl", result.url);
                             formData.append("respondentId", respondentId);
-
                         } catch (error) {
                             console.error("Upload failed:", error);
                             nextWordButton.style.display = "none";
@@ -267,11 +266,14 @@
         }
 
         function displayThankYou() {
-            document.getElementById("app").innerHTML = `
-                <div class="thank-you">Thank you for your participation!</div>
-            `;
+            const thankYouDiv = document.createElement("div");
+            thankYouDiv.className = "thank-you";
+            thankYouDiv.textContent = "Thank you for completing the memory test!";
+            document.getElementById("app").innerHTML = "";
+            document.getElementById("app").appendChild(thankYouDiv);
         }
 
+        // Start Test
         startTestButton.addEventListener("click", initializeTest);
     </script>
 </body>
