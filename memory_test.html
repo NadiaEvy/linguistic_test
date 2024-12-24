@@ -18,7 +18,7 @@
         }
         .container {
             width: 100%;
-            max-width: 480px;
+            max-width: 450px;
             padding: 20px;
             background: #fff;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -40,16 +40,28 @@
             background-color: #6c757d;
             cursor: not-allowed;
         }
-        .word {
-            font-size: 48px;
-            font-weight: bold;
-            margin: 20px 0;
-            text-align: center;
+        .form-field {
+            margin-bottom: 15px;
+        }
+        label {
+            font-size: 14px;
+            display: block;
+            margin-bottom: 5px;
+            text-align: left;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            box-sizing: border-box;
         }
         .thank-you {
             font-size: 24px;
             font-weight: bold;
-            color: #007bff;
+            color: #28a745;
+            text-align: center;
             margin-top: 20px;
         }
     </style>
@@ -67,7 +79,6 @@
     <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.0.2.min.js"></script>
 
     <script>
-        // Fetch survey data from localStorage
         const surveyData = JSON.parse(localStorage.getItem('surveyData')) || {};
         console.log("Survey Data:", surveyData);
 
@@ -97,61 +108,104 @@
             1: "audio/1/word",
             2: "audio/2/word",
             3: "audio/3/word",
-            4: "audio/4/word"
+            4: "audio/4/word",
         };
 
+        async function renderInstructions() {
+            instructionsDiv.innerHTML = `
+                <h2>Survey Data</h2>
+                <ul>
+                    <li>Grade: ${surveyData.grade}</li>
+                    <li>Preferred Accent: ${surveyData["preferred-accent"]}</li>
+                    <li>Gender: ${surveyData.gender}</li>
+                    <li>Languages: ${surveyData.languages}</li>
+                    <li>Dialects: ${surveyData.dialects}</li>
+                    <li>Learning Started: ${surveyData["learning-start"]}</li>
+                </ul>
+                <h3>Instructions</h3>
+                <p>${phases[currentPhase].instructions}</p>
+            `;
+            instructionsDiv.style.display = 'block';
+            startPhaseButton.style.display = 'block';
+        }
+
         startTestButton.addEventListener("click", () => {
-            instructionsDiv.innerHTML = `<p>Survey Data: ${JSON.stringify(surveyData)}</p>`;
-            instructionsDiv.style.display = "block";
             startTestButton.style.display = "none";
-            startPhaseButton.style.display = "block";
+            renderInstructions();
         });
 
         startPhaseButton.addEventListener("click", () => {
-            if (currentPhase < phases.length) {
-                startPhase();
-            }
+            instructionsDiv.style.display = "none";
+            startPhaseButton.style.display = "none";
+            currentIndex = 0;
+            renderWord();
         });
 
-        function startPhase() {
-            const phase = phases[currentPhase];
-            instructionsDiv.innerHTML = `<p>${phase.instructions}</p>`;
-            instructionsDiv.style.display = "block";
-            startPhaseButton.style.display = "none";
+        nextWordButton.addEventListener("click", () => {
+            nextWord();
+        });
+
+        function renderWord() {
+            const word = phases[currentPhase].content[currentIndex];
+            phaseContentDiv.innerHTML = `
+                <h3>Word: ${word}</h3>
+                <button id="start-recording" onclick="startRecording()">Start Recording</button>
+            `;
             phaseContentDiv.style.display = "block";
-            displayWord();
         }
 
-        function displayWord() {
-            const phase = phases[currentPhase];
-            if (phase.content && currentIndex < phase.content.length) {
-                const word = phase.content[currentIndex];
-                phaseContentDiv.innerHTML = `<div class="word">${word}</div>`;
+        function startRecording() {
+            const word = phases[currentPhase].content[currentIndex];
+            const button = document.getElementById("start-recording");
+            const nextWordButton = document.getElementById("next-word-button");
+
+            if (button.textContent === "Start Recording") {
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(stream => {
+                        audioStream = stream;
+                        mediaRecorder = new MediaRecorder(stream);
+                        mediaRecorder.ondataavailable = event => {
+                            audioChunks.push(event.data);
+                        };
+                        mediaRecorder.onstop = () => {
+                            const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+                            const audioUrl = URL.createObjectURL(audioBlob);
+                            const audio = new Audio(audioUrl);
+                            audio.play();
+
+                            const formData = new FormData();
+                            formData.append("file", audioBlob, `${word}.mp3`);
+                            formData.append("word", word);
+                            formData.append("version", randomVersion);
+                            formData.append("respondentID", localStorage.getItem("respondentID"));
+
+                            // Your upload logic goes here
+                            alert("Recording saved!");
+                        };
+
+                        mediaRecorder.start();
+                        button.textContent = "Stop Recording";
+                    });
+            } else {
+                mediaRecorder.stop();
+                button.textContent = "Start Recording";
                 nextWordButton.style.display = "block";
             }
         }
 
-        nextWordButton.addEventListener("click", () => {
+        function nextWord() {
             currentIndex++;
             if (currentIndex < phases[currentPhase].content.length) {
-                displayWord();
+                renderWord();
             } else {
-                finishPhase();
-            }
-        });
-
-        function finishPhase() {
-            currentPhase++;
-            if (currentPhase < phases.length) {
-                startPhase();
-            } else {
-                alert("Test Completed!");
-                nextWordButton.style.display = "none";
+                currentPhase++;
+                if (currentPhase < phases.length) {
+                    renderWord();
+                } else {
+                    alert("Test complete!");
+                }
             }
         }
-
-        // Handle audio recording logic here...
-
     </script>
 </body>
 </html>
