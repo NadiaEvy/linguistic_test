@@ -149,11 +149,14 @@
                 audio.src = audioPath;
                 audio.controls = true;
                 phaseContentDiv.appendChild(audio);
-
+                
                 // Show the next word button after the audio ends
                 nextWordButton.style.display = "none";
+                nextWordButton.disabled = true; 
+                
                 audio.onended = () => {
                     nextWordButton.style.display = "block";
+                    nextWordButton.disabled = false; 
 
                     const recordButton = document.createElement("button");
                     recordButton.textContent = "Start Recording";
@@ -172,7 +175,11 @@
                 recordButton.textContent = "Start Recording";
                 recordButton.onclick = () => toggleRecording(word, recordButton);
                 phaseContentDiv.appendChild(recordButton);
+                // Hide next word button initially
+                nextWordButton.style.display = "none";
+                nextWordButton.disabled = true; 
             }
+
             // Handle Phase 3: Display yes/no buttons
             else if (phase.test) {
                 const wordDiv = document.createElement("div");
@@ -191,7 +198,8 @@
                 phaseContentDiv.appendChild(yesButton);
                 phaseContentDiv.appendChild(noButton);
             // Do not show "Next Word" until the current word's task is completed (recording or listening)
-                nextWordButton.style.display = "none";        
+                nextWordButton.style.display = "none";
+                nextWordButton.disabled = true;
             }
         }
         
