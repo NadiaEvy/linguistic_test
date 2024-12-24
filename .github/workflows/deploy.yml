@@ -24,11 +24,6 @@ jobs:
           npm install
         fi
 
-    - name: Build (if needed)
-      run: |
-        if [ -f build ]; then
-          npm run build
-        fi
 
     - name: Install Aliyun OSS CLI 
       run: |
