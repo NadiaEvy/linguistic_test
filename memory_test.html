@@ -149,21 +149,22 @@
                 audio.src = audioPath;
                 audio.controls = true;
                 phaseContentDiv.appendChild(audio);
-                
-                // Show the next word button after the audio ends
+
+                // Hide next word button initially
                 nextWordButton.style.display = "none";
-                nextWordButton.disabled = true; 
-                
+                nextWordButton.disabled = true;  // Disable next word button while audio is playing
+
                 audio.onended = () => {
+                    // Enable the next word button after the audio ends
                     nextWordButton.style.display = "block";
-                    nextWordButton.disabled = false; 
+                    nextWordButton.disabled = false;
 
                     const recordButton = document.createElement("button");
                     recordButton.textContent = "Start Recording";
                     recordButton.onclick = () => toggleRecording(word, recordButton);
                     phaseContentDiv.appendChild(recordButton);
                 };
-            } 
+            }
             // Handle Phase 1: Display word and recording button
             else if (phase.record) {
                 const wordDiv = document.createElement("div");
@@ -175,11 +176,11 @@
                 recordButton.textContent = "Start Recording";
                 recordButton.onclick = () => toggleRecording(word, recordButton);
                 phaseContentDiv.appendChild(recordButton);
+
                 // Hide next word button initially
                 nextWordButton.style.display = "none";
-                nextWordButton.disabled = true; 
+                nextWordButton.disabled = true;
             }
-
             // Handle Phase 3: Display yes/no buttons
             else if (phase.test) {
                 const wordDiv = document.createElement("div");
@@ -197,12 +198,13 @@
 
                 phaseContentDiv.appendChild(yesButton);
                 phaseContentDiv.appendChild(noButton);
-            // Do not show "Next Word" until the current word's task is completed (recording or listening)
+
+                // Hide next word button during phase 3 (yes/no phase)
                 nextWordButton.style.display = "none";
                 nextWordButton.disabled = true;
             }
         }
-        
+
         function saveSurveyResults() {
             const respondentId = getRespondentId();
             const timestamp = Date.now();
@@ -248,8 +250,7 @@
                         const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
                         const respondentId = getRespondentId();
                         const phaseFolder = `phase${currentPhase + 1}`;  // e.g., phase1, phase2
-                        const versionFolder = `v${randomVersion}`; // v1, v2, v3, v4
-                        const fileName = `${respondentId}/${phaseFolder}/${versionFolder}/${word}_${Date.now()}.mp3`;
+                        const fileName = `${respondentId}/${phaseFolder}/word_${currentIndex + 1}.mp3`;
 
                         const client = new OSS({
                             region: 'oss-rg-china-mainland',
@@ -258,30 +259,30 @@
                             bucket: 'linguisticstest',
                         });
 
-                        try {
-                            const result = await client.put(fileName, audioBlob);
-                            console.log(`Uploaded successfully: ${result.url}`);
+                        client.put(fileName, audioBlob).then(result => {
+                            console.log(`Recording uploaded successfully: ${result.url}`);
+                        }).catch(error => {
+                            console.error("Recording upload failed:", error);
+                        });
 
-                            // Enable the Next Word button after uploading
-                            nextWordButton.style.display = "block";
-                            nextWordButton.disabled = false;
-                        } catch (error) {
-                            console.error("Upload failed:", error);
-                            nextWordButton.style.display = "none";
-                            nextWordButton.disabled = true;
-                        }
+                        nextWordButton.style.display = "block";
+                        nextWordButton.disabled = false;
                     };
 
                     mediaRecorder.start();
                     button.textContent = "Stop Recording";
                 } else {
                     mediaRecorder.stop();
-                    button.textContent = "Start Recording";
+                    button.textContent = "Recording Stopped";
                 }
             }
         }
 
         function nextWord() {
+            // Disable the button to prevent multiple clicks and hide it for a smooth transition
+            nextWordButton.disabled = true;
+            nextWordButton.style.display = "none";
+
             currentIndex++;
             if (currentIndex >= phases[currentPhase].content.length) {
                 currentPhase++;
