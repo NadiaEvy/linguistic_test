@@ -182,17 +182,51 @@
 
                 const yesButton = document.createElement("button");
                 yesButton.textContent = "Yes";
-                yesButton.onclick = nextWord;  // Ensure nextWord is accessible
+                yesButton.onclick = () => nextWord();
 
                 const noButton = document.createElement("button");
                 noButton.textContent = "No";
-                noButton.onclick = nextWord;  // Ensure nextWord is accessible
+                noButton.onclick = () => nextWord();
 
                 phaseContentDiv.appendChild(yesButton);
                 phaseContentDiv.appendChild(noButton);
-            }
+            // Do not show "Next Word" until the current word's task is completed (recording or listening)
+            nextWordButton.style.display = "none";
+        }
 
-            nextWordButton.style.display = "none";  // Hide "Next Word" until task completion
+        function saveSurveyResults() {
+            const respondentId = getRespondentId();
+            const timestamp = Date.now();
+            const surveyCSV = generateCSV(surveyData);
+
+            const client = new OSS({
+                region: 'oss-rg-china-mainland',
+                accessKeyId: 'LTAI5tMVY9Jpm2MroinSie5z',
+                accessKeySecret: 'BU384EPr4lgFxnBEgwx041JaqSFts6',
+                bucket: 'linguisticstest',
+            });
+
+            const fileName = `${respondentId}/survey_results_${timestamp}.csv`;
+
+            client.put(fileName, surveyCSV).then(result => {
+                console.log(`Survey results uploaded successfully: ${result.url}`);
+            }).catch(error => {
+                console.error("Survey results upload failed:", error);
+            });
+        }
+
+        function generateCSV(data) {
+            const keys = Object.keys(data);
+            const csvRows = [];
+
+            // Create CSV header
+            csvRows.push(keys.join(','));
+
+            // Create CSV data rows
+            const values = keys.map(key => data[key]);
+            csvRows.push(values.join(','));
+
+            return csvRows.join('\n');
         }
 
         function toggleRecording(word, button) {
@@ -238,46 +272,23 @@
             }
         }
 
-        nextWordButton.addEventListener("click", () => {
-            const phase = phases[currentPhase];
-            currentIndex++;
-            if (currentIndex < phase.content.length) {
-                renderWord();
-            } else {
-                currentIndex = 0;
-                nextPhase();
-            }
-        });
-
         function nextWord() {
-            const phase = phases[currentPhase];
             currentIndex++;
-            if (currentIndex < phase.content.length) {
-                renderWord();
-            } else {
-                currentIndex = 0;
-                nextPhase();
-            }
-        }
-
-        function nextPhase() {
-            currentPhase++;
-            if (currentPhase < phases.length) {
+            if (currentIndex >= phases[currentPhase].content.length) {
+                currentPhase++;
+                if (currentPhase >= phases.length) {
+                    // End of all phases
+                    saveSurveyResults();
+                    document.body.innerHTML = `<div class="thank-you">Thank you for completing the test!</div>`;
+                    return;
+                }
                 renderInstructions();
             } else {
-                displayThankYou();
+                renderWord();
             }
-        }
-
-        function displayThankYou() {
-            document.getElementById("app").innerHTML = `
-                <div class="thank-you">
-                    Thank you for completing the test! Your data has been saved.
-                </div>`;
         }
 
         startTestButton.addEventListener("click", initializeTest);
-
     </script>
 </body>
 </html>
