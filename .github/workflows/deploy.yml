@@ -12,14 +12,10 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
-
-    - name: Set up Node.js (if needed for a build step, though it's not required for your static HTML/CSS/JS)
-      uses: actions/setup-node@v2
       with:
-        node-version: '14'
+        path: linguistic_test # Specify the directory where the repo should be checked out
 
-
-    - name: Install Aliyun OSS CLI 
+    - name: Install Aliyun OSS CLI (Corrected Method)
       run: |
         # Install dependencies
         sudo apt-get update && sudo apt-get install -y wget curl unzip
@@ -38,13 +34,12 @@ jobs:
 
     - name: Configure OSS CLI with Secrets
       run: |
-        # Ensure secrets are correctly passed to the command
         ossutil config --access-key-id ${{ secrets.OSS_ACCESS_KEY_ID }} --access-key-secret ${{ secrets.OSS_ACCESS_KEY_SECRET }} --endpoint ${{ secrets.OSS_ENDPOINT }}
 
-    - name: Deploy to OSS (or other static hosting platform)
+    - name: Deploy to OSS
       run: |
-        # Upload files to your OSS bucket (adjust path to your actual files)
-        ossutil cp --recursive ./ oss://linguisticstest/
+        # Now that the repo is checked out at the correct location
+        ossutil cp --recursive ./linguistic_test/ oss://linguisticstest/
 
     - name: Finalize Deployment
       run: |
