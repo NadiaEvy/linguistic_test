@@ -1,27 +1,22 @@
-name: Build and Deploy Website
+name: Deploy to GitHub Pages
 
 on:
   push:
     branches:
-      - main  # Ensure it runs on push to 'main'
+      - main  # Trigger when changes are pushed to the main branch
 
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
+  deploy:
+    runs-on: ubuntu-latest  # Run on the latest Ubuntu
+
     steps:
+      # Step 1: Checkout the code
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Install dependencies (optional if needed)
-        run: npm install  # Only if you need to install dependencies
-
-      - name: Copy files to dist
-        run: |
-          mkdir -p dist
-          cp -r * dist/
-
+      # Step 2: Deploy to GitHub Pages (no build step needed)
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+          publish_dir: ./  # Publish from the root directory (if your index.html is in the root)
