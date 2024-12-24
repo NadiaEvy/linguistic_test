@@ -150,21 +150,17 @@
                 audio.controls = true;
                 phaseContentDiv.appendChild(audio);
 
-                // Hide next word button initially
+                // Show the next word button after the audio ends
                 nextWordButton.style.display = "none";
-                nextWordButton.disabled = true;  // Disable next word button while audio is playing
-
                 audio.onended = () => {
-                    // Enable the next word button after the audio ends
                     nextWordButton.style.display = "block";
-                    nextWordButton.disabled = false;
 
                     const recordButton = document.createElement("button");
                     recordButton.textContent = "Start Recording";
                     recordButton.onclick = () => toggleRecording(word, recordButton);
                     phaseContentDiv.appendChild(recordButton);
                 };
-            }
+            } 
             // Handle Phase 1: Display word and recording button
             else if (phase.record) {
                 const wordDiv = document.createElement("div");
@@ -176,10 +172,6 @@
                 recordButton.textContent = "Start Recording";
                 recordButton.onclick = () => toggleRecording(word, recordButton);
                 phaseContentDiv.appendChild(recordButton);
-
-                // Hide next word button initially
-                nextWordButton.style.display = "none";
-                nextWordButton.disabled = true;
             }
             // Handle Phase 3: Display yes/no buttons
             else if (phase.test) {
@@ -198,46 +190,8 @@
 
                 phaseContentDiv.appendChild(yesButton);
                 phaseContentDiv.appendChild(noButton);
-
-                // Hide next word button during phase 3 (yes/no phase)
-                nextWordButton.style.display = "none";
-                nextWordButton.disabled = true;
-            }
-        }
-
-        function saveSurveyResults() {
-            const respondentId = getRespondentId();
-            const timestamp = Date.now();
-            const surveyCSV = generateCSV(surveyData);
-
-            const client = new OSS({
-                region: 'oss-rg-china-mainland',
-                accessKeyId: 'LTAI5tMVY9Jpm2MroinSie5z',
-                accessKeySecret: 'BU384EPr4lgFxnBEgwx041JaqSFts6',
-                bucket: 'linguisticstest',
-            });
-
-            const fileName = `${respondentId}/survey_results_${timestamp}.csv`;
-
-            client.put(fileName, surveyCSV).then(result => {
-                console.log(`Survey results uploaded successfully: ${result.url}`);
-            }).catch(error => {
-                console.error("Survey results upload failed:", error);
-            });
-        }
-
-        function generateCSV(data) {
-            const keys = Object.keys(data);
-            const csvRows = [];
-
-            // Create CSV header
-            csvRows.push(keys.join(','));
-
-            // Create CSV data rows
-            const values = keys.map(key => data[key]);
-            csvRows.push(values.join(','));
-
-            return csvRows.join('\n');
+            // Do not show "Next Word" until the current word's task is completed (recording or listening)
+            nextWordButton.style.display = "none";
         }
 
         function toggleRecording(word, button) {
@@ -278,16 +232,12 @@
                     button.textContent = "Stop Recording";
                 } else {
                     mediaRecorder.stop();
-                    button.textContent = "Recording Stopped";
+                    button.textContent = "Start Recording";
                 }
             }
         }
 
-        function nextWord() {
-            // Disable the button to prevent multiple clicks and hide it for a smooth transition
-            nextWordButton.disabled = true;
-            nextWordButton.style.display = "none";
-
+        nextWordButton.addEventListener("click", () => {
             currentIndex++;
             if (currentIndex >= phases[currentPhase].content.length) {
                 currentPhase++;
@@ -301,6 +251,41 @@
             } else {
                 renderWord();
             }
+        });
+
+        function saveSurveyResults() {
+            const respondentId = getRespondentId();
+            const timestamp = Date.now();
+            const surveyCSV = generateCSV(surveyData);
+
+            const client = new OSS({
+                region: 'oss-rg-china-mainland',
+                accessKeyId: 'LTAI5tMVY9Jpm2MroinSie5z',
+                accessKeySecret: 'BU384EPr4lgFxnBEgwx041JaqSFts6',
+                bucket: 'linguisticstest',
+            });
+
+            const fileName = `${respondentId}/survey_results_${timestamp}.csv`;
+
+            client.put(fileName, surveyCSV).then(result => {
+                console.log(`Survey results uploaded successfully: ${result.url}`);
+            }).catch(error => {
+                console.error("Survey results upload failed:", error);
+            });
+        }
+
+        function generateCSV(data) {
+            const keys = Object.keys(data);
+            const csvRows = [];
+
+            // Create CSV header
+            csvRows.push(keys.join(','));
+
+            // Create CSV data rows
+            const values = keys.map(key => data[key]);
+            csvRows.push(values.join(','));
+
+            return csvRows.join('\n');
         }
 
         startTestButton.addEventListener("click", initializeTest);
