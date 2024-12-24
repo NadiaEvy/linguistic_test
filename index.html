@@ -44,13 +44,6 @@
             margin-top: 10px;
             width: 100%;
         }
-        .word {
-            font-size: 48px;
-            font-weight: bold;
-            margin: 20px 0;
-            text-align: center;
-            line-height: 1.2;
-        }
         .form-field {
             margin-bottom: 15px;
         }
@@ -61,7 +54,7 @@
             text-align: left;
         }
         input, select {
-            width: 100%; /* Ensures consistent width */
+            width: 100%;
             padding: 12px;
             font-size: 16px;
             border: 1px solid #ced4da;
@@ -76,9 +69,6 @@
             margin-top: 20px;
         }
         @media (max-width: 600px) {
-            .word {
-                font-size: 36px;
-            }
             button {
                 font-size: 16px;
                 padding: 12px;
@@ -113,7 +103,7 @@
                 </select>
             </div>
             <div class="form-field">
-                <label for="learning-start">When did you start learning English? :</label>
+                <label for="learning-start">When did you start learning English?</label>
                 <input type="number" id="learning-start" name="learning-start" placeholder="Please type in the age you started." required>
             </div>
             <div class="form-field">
@@ -143,7 +133,7 @@
             localStorage.setItem('surveyData', JSON.stringify(surveyData));
 
             // Redirect to memory test page
-            window.location.href = 'memory_test.html';
+            window.location.href = 'memory-test.html';
         });
     </script>
 </body>
