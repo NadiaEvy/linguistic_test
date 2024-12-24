@@ -191,9 +191,10 @@
                 phaseContentDiv.appendChild(yesButton);
                 phaseContentDiv.appendChild(noButton);
             // Do not show "Next Word" until the current word's task is completed (recording or listening)
-            nextWordButton.style.display = "none";
+                nextWordButton.style.display = "none";        
+            }
         }
-
+        
         function saveSurveyResults() {
             const respondentId = getRespondentId();
             const timestamp = Date.now();
