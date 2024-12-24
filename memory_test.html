@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Memory Test</title>
-    <link rel="icon" href="data:,">
-     <style>
+    <link rel="icon" href="data:,"> <!-- 无图标 -->
+    <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -82,26 +82,19 @@
     <script>
         const surveyData = JSON.parse(localStorage.getItem('surveyData')) || {};
         const respondentID = localStorage.getItem('respondentID') || 'defaultID';
-        const randomVersion = Math.floor(Math.random() * 4) + 1; // Randomly select version 1-4
+        const randomVersion = Math.floor(Math.random() * 4) + 1; // 随机选择版本 1-4
         const phases = [
             { instructions: "Read aloud! Pronounce the word and record.", content: ["pit", "pat", "pot", "tip", "tap", "top"], record: true },
             { instructions: "Follow the audio! Pronounce after hearing.", content: ["pit", "pat", "pot", "tip", "tap", "top"], audio: true, record: true },
             { instructions: "Memory test! Have you seen this word?", content: ["cat", "tip", "cop", "pick", "pat"], test: true },
         ];
 
-        const versionPaths = {
-            1: "audio/1/word",
-            2: "audio/2/word",
-            3: "audio/3/word",
-            4: "audio/4/word",
-        };
-
-        // Define OSS client and configuration
+        // OSS 客户端配置
         const client = new OSS({
-            region: 'oss-rg-china-mainland',
-            accessKeyId: 'LTAI5tMVY9Jpm2MroinSie5z',
-            accessKeySecret: 'BU384EPr4lgFxnBEgwx041JaqSFts6',
-            bucket: 'linguisticstest',
+            region: 'oss-cn-region',  // 你的 OSS 区域
+            accessKeyId: 'your-access-key-id',
+            accessKeySecret: 'your-access-key-secret',
+            bucket: 'your-bucket-name',
         });
 
         const startTestButton = document.getElementById("start-test-button");
@@ -116,6 +109,7 @@
         let audioStream;
         let audioChunks = [];
 
+        // 渲染指导文本
         function renderInstructions() {
             instructionsDiv.innerHTML = `
                 <h2>Survey Data</h2>
@@ -150,6 +144,7 @@
             nextWord();
         });
 
+        // 渲染单词
         function renderWord() {
             const word = phases[currentPhase].content[currentIndex];
             phaseContentDiv.innerHTML = `
@@ -163,7 +158,7 @@
             const word = phases[currentPhase].content[currentIndex];
             const button = document.getElementById("start-recording");
             const nextWordButton = document.getElementById("next-word-button");
-        
+
             if (button.textContent === "Start Recording") {
                 navigator.mediaDevices.getUserMedia({ audio: true })
                     .then(stream => {
@@ -177,21 +172,16 @@
                             const audioUrl = URL.createObjectURL(audioBlob);
                             const audio = new Audio(audioUrl);
                             audio.play();
-        
+
                             // 启用 "Next Word" 按钮
                             nextWordButton.style.display = 'block';
                             nextWordButton.disabled = false;
-        
-                            const formData = new FormData();
-                            formData.append("file", audioBlob, `${word}.mp3`);
-                            formData.append("word", word);
-                            formData.append("version", randomVersion);
-                            formData.append("respondentID", localStorage.getItem("respondentID"));
-        
-                            // Upload logic here
-                            alert("Recording saved!");
+
+                            // 上传音频文件到 OSS
+                            const filename = `${respondentID}_phase${currentPhase + 1}_${word}_${randomVersion}.mp3`;
+                            uploadAudioToOSS(audioBlob, filename);
                         };
-        
+
                         mediaRecorder.start();
                         button.textContent = "Stop Recording";
                     });
@@ -201,7 +191,7 @@
             }
         }
 
-
+        // 进入下一个单词
         function nextWord() {
             currentIndex++;
             if (currentIndex < phases[currentPhase].content.length) {
@@ -216,18 +206,32 @@
             }
         }
 
-        // Upload the audio file to OSS
+        // 上传音频文件到 OSS
         function uploadAudioToOSS(audioBlob, filename) {
-            const formData = new FormData();
-            formData.append("file", audioBlob, filename);
-
-            // Upload to OSS (assuming your OSS API setup is correct)
             client.put(filename, audioBlob).then(result => {
                 console.log('File uploaded successfully:', result);
             }).catch(err => {
                 console.error('File upload failed:', err);
             });
         }
+
+        // 上传调查数据
+        function uploadSurveyDataToOSS(surveyData) {
+            const filename = `survey_${respondentID}_${randomVersion}.json`;
+
+            const formData = new FormData();
+            formData.append("file", new Blob([JSON.stringify(surveyData)], { type: 'application/json' }), filename);
+
+            // 上传到 OSS
+            client.put(filename, formData).then(result => {
+                console.log('Survey data uploaded successfully:', result);
+            }).catch(err => {
+                console.error('Survey data upload failed:', err);
+            });
+        }
+
+        // 上传调查数据
+        uploadSurveyDataToOSS(surveyData);
     </script>
 </body>
 </html>
