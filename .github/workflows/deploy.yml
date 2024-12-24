@@ -30,7 +30,7 @@ jobs:
           npm run build
         fi
 
-    - name: Install Aliyun OSS CLI (Corrected Method)
+    - name: Install Aliyun OSS CLI 
       run: |
         # Install dependencies
         sudo apt-get update && sudo apt-get install -y wget curl unzip
@@ -55,7 +55,7 @@ jobs:
     - name: Deploy to OSS (or other static hosting platform)
       run: |
         # Upload files to your OSS bucket (adjust path to your actual files)
-        ossutil cp --recursive ./path/to/your/files oss://your-bucket-name/
+        ossutil cp --recursive ./phonetics oss://linguisticstest/
 
     - name: Finalize Deployment
       run: |
