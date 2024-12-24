@@ -66,13 +66,11 @@
 
     <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.7.0.min.js"></script>
     <script>
-        const surveyData = JSON.parse(localStorage.getItem('surveyData')) || {};
         let currentPhase = 0;
         let currentIndex = 0;
         let mediaRecorder;
         let audioStream;
         let audioChunks = [];
-        const responses = [];
         const randomVersion = Math.floor(Math.random() * 4) + 1;
         const startTestButton = document.getElementById("start-test-button");
         const instructionsDiv = document.getElementById("instructions");
@@ -243,7 +241,6 @@
                 currentPhase++;
                 if (currentPhase >= phases.length) {
                     // End of all phases
-                    saveSurveyResults();
                     document.body.innerHTML = `<div class="thank-you">Thank you for completing the test!</div>`;
                     return;
                 }
@@ -252,41 +249,6 @@
                 renderWord();
             }
         });
-
-        function saveSurveyResults() {
-            const respondentId = getRespondentId();
-            const timestamp = Date.now();
-            const surveyCSV = generateCSV(surveyData);
-
-            const client = new OSS({
-                region: 'oss-rg-china-mainland',
-                accessKeyId: 'LTAI5tMVY9Jpm2MroinSie5z',
-                accessKeySecret: 'BU384EPr4lgFxnBEgwx041JaqSFts6',
-                bucket: 'linguisticstest',
-            });
-
-            const fileName = `${respondentId}/survey_results_${timestamp}.csv`;
-
-            client.put(fileName, surveyCSV).then(result => {
-                console.log(`Survey results uploaded successfully: ${result.url}`);
-            }).catch(error => {
-                console.error("Survey results upload failed:", error);
-            });
-        }
-
-        function generateCSV(data) {
-            const keys = Object.keys(data);
-            const csvRows = [];
-
-            // Create CSV header
-            csvRows.push(keys.join(','));
-
-            // Create CSV data rows
-            const values = keys.map(key => data[key]);
-            csvRows.push(values.join(','));
-
-            return csvRows.join('\n');
-        }
 
         startTestButton.addEventListener("click", initializeTest);
     </script>
