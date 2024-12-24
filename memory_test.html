@@ -190,10 +190,11 @@
 
                 phaseContentDiv.appendChild(yesButton);
                 phaseContentDiv.appendChild(noButton);
-            // Do not show "Next Word" until the current word's task is completed (recording or listening)
-            nextWordButton.style.display = "none";
+            }
+
+            nextWordButton.style.display = "none";  // Hide "Next Word" until task completion
         }
-        
+
         function toggleRecording(word, button) {
             if (mediaRecorder) {
                 if (mediaRecorder.state === "inactive") {
@@ -247,17 +248,6 @@
                 nextPhase();
             }
         });
-            
-        function nextWord() {
-            const phase = phases[currentPhase];
-            currentIndex++;
-            if (currentIndex < phase.content.length) {
-                renderWord();
-            } else {
-                currentIndex = 0;
-                nextPhase();
-            }
-        }
 
         function nextPhase() {
             currentPhase++;
@@ -276,7 +266,6 @@
         }
 
         startTestButton.addEventListener("click", initializeTest);
-
     </script>
 </body>
 </html>
