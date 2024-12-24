@@ -204,9 +204,15 @@
                     mediaRecorder.onstop = async () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
                         const respondentId = getRespondentId();
+                        const grade = surveyData.grade || 'Unknown';
+                        const startAge = surveyData['learning-start'] || 'Unknown';
+                        const accent = surveyData['preferred-accent'] || 'Unknown';
+                        const languages = surveyData['languages'] || 'Unknown';
+                        const dialects = surveyData['dialects'] || 'Unknown';
+
                         const phaseFolder = `phase${currentPhase + 1}`;  // e.g., phase1, phase2
                         const versionFolder = `v${randomVersion}`; // v1, v2, v3, v4
-                        const fileName = `${respondentId}/${phaseFolder}/${versionFolder}/${word}_${Date.now()}.mp3`;
+                        const fileName = `${respondentId}/${grade}_${startAge}_${accent}_${languages}_${dialects}/${phaseFolder}/${versionFolder}/${word}_${Date.now()}.mp3`;
 
                         const client = new OSS({
                             region: 'oss-rg-china-mainland',
