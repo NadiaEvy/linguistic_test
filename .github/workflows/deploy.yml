@@ -44,8 +44,8 @@ jobs:
         # Move it to a directory in your PATH
         sudo mv ossutil /usr/local/bin/
 
-        # Verify the installation
-        ossutil version
+        # Verify the installation by running help (instead of version)
+        ossutil help
 
     - name: Configure OSS CLI
       run: |
