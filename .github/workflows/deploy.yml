@@ -30,16 +30,21 @@ jobs:
           npm run build
         fi
 
-    - name: Deploy to OSS (or other static hosting platform)
+    - name: Install Aliyun OSS CLI (Corrected)
       run: |
-        # Assuming you're deploying to an OSS bucket or S3 bucket
-        # Install the necessary CLI for the platform you're using
-        # Example for deploying to Aliyun OSS:
-        curl -sSL https://gosspublic.alicdn.com/aliyun-oss-cli/aliyun-oss-cli-linux-amd64.tar.gz | tar -xz -C /usr/local/bin
+        # Download the OSS CLI tarball (correct URL) and extract it
+        wget https://gosspublic.alicdn.com/aliyun-oss-cli/aliyun-oss-cli-linux-amd64-3.0.0.tar.gz
+        tar -xvzf aliyun-oss-cli-linux-amd64-3.0.0.tar.gz -C /usr/local/bin
 
-        # Configure OSS CLI
+        # Verify the OSS CLI installation
+        aliyun oss --help
+
+    - name: Configure OSS CLI
+      run: |
         aliyun oss config --access-key-id ${{ secrets.OSS_ACCESS_KEY_ID }} --access-key-secret ${{ secrets.OSS_ACCESS_KEY_SECRET }} --endpoint ${{ secrets.OSS_ENDPOINT }}
 
+    - name: Deploy to OSS (or other static hosting platform)
+      run: |
         # Upload files to your OSS bucket (adjust path to your actual files)
         aliyun oss cp --recursive ./path/to/your/files oss://your-bucket-name/
 
