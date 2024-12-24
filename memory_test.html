@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Memory Test</title>
-    <link rel="icon" href="data:,"> <!-- 无图标 -->
+    <link rel="icon" href="data:,">  <!-- 去掉了之前的问题 favicon -->
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -82,14 +82,21 @@
     <script>
         const surveyData = JSON.parse(localStorage.getItem('surveyData')) || {};
         const respondentID = localStorage.getItem('respondentID') || 'defaultID';
-        const randomVersion = Math.floor(Math.random() * 4) + 1; // 随机选择版本 1-4
+        const randomVersion = Math.floor(Math.random() * 4) + 1; // Randomly select version 1-4
         const phases = [
             { instructions: "Read aloud! Pronounce the word and record.", content: ["pit", "pat", "pot", "tip", "tap", "top"], record: true },
             { instructions: "Follow the audio! Pronounce after hearing.", content: ["pit", "pat", "pot", "tip", "tap", "top"], audio: true, record: true },
             { instructions: "Memory test! Have you seen this word?", content: ["cat", "tip", "cop", "pick", "pat"], test: true },
         ];
 
-        // OSS 客户端配置
+        const versionPaths = {
+            1: "audio/1/word",
+            2: "audio/2/word",
+            3: "audio/3/word",
+            4: "audio/4/word",
+        };
+
+        // Define OSS client and configuration
         const client = new OSS({
             region: 'oss-rg-china-mainland',
             accessKeyId: 'LTAI5tMVY9Jpm2MroinSie5z',
@@ -109,7 +116,47 @@
         let audioStream;
         let audioChunks = [];
 
-        // 渲染指导文本
+        // Convert survey data to CSV
+        function convertSurveyDataToCSV(surveyData) {
+            const header = ["Grade", "Preferred Accent", "Gender", "Languages", "Dialects", "Learning Started"];
+            const row = [
+                surveyData.grade,
+                surveyData["preferred-accent"],
+                surveyData.gender,
+                surveyData.languages,
+                surveyData.dialects,
+                surveyData["learning-start"]
+            ];
+
+            const csvContent = [header.join(","), row.join(",")].join("\n");
+            return csvContent;
+        }
+
+        // Upload survey data to OSS
+        function uploadSurveyDataToOSS(surveyData) {
+            const csvContent = convertSurveyDataToCSV(surveyData);
+            const filename = `${respondentID}/survey_data.csv`;  // Save under respondentID
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            client.put(filename, blob).then(result => {
+                console.log('Survey data uploaded successfully:', result);
+            }).catch(err => {
+                console.error('Survey data upload failed:', err);
+            });
+        }
+
+        // Upload audio file to OSS
+        function uploadAudioToOSS(audioBlob, filename) {
+            const formData = new FormData();
+            formData.append("file", audioBlob, filename);
+
+            client.put(filename, audioBlob).then(result => {
+                console.log('File uploaded successfully:', result);
+            }).catch(err => {
+                console.error('File upload failed:', err);
+            });
+        }
+
         function renderInstructions() {
             instructionsDiv.innerHTML = `
                 <h2>Survey Data</h2>
@@ -131,6 +178,8 @@
         startTestButton.addEventListener("click", () => {
             startTestButton.style.display = "none";
             renderInstructions();
+            // Upload survey data
+            uploadSurveyDataToOSS(surveyData);
         });
 
         startPhaseButton.addEventListener("click", () => {
@@ -141,10 +190,16 @@
         });
 
         nextWordButton.addEventListener("click", () => {
-            nextWord();
+            const phase = phases[currentPhase];
+            currentIndex++;
+            if (currentIndex < phase.content.length) {
+                renderWord();
+            } else {
+                currentIndex = 0;
+                nextPhase();
+            }
         });
 
-        // 渲染单词
         function renderWord() {
             const word = phases[currentPhase].content[currentIndex];
             phaseContentDiv.innerHTML = `
@@ -173,13 +228,22 @@
                             const audio = new Audio(audioUrl);
                             audio.play();
 
-                            // 启用 "Next Word" 按钮
+                            // Enable "Next Word" button
                             nextWordButton.style.display = 'block';
                             nextWordButton.disabled = false;
 
-                            // 上传音频文件到 OSS
-                            const filename = `${respondentID}_phase${currentPhase + 1}_${word}_${randomVersion}.mp3`;
-                            uploadAudioToOSS(audioBlob, filename);
+                            const formData = new FormData();
+                            formData.append("file", audioBlob, `${word}.mp3`);
+                            formData.append("word", word);
+                            formData.append("version", randomVersion);
+                            formData.append("respondentID", localStorage.getItem("respondentID"));
+
+                            // Upload audio data to OSS
+                            const audioFilename = `${respondentID}/audio/${versionPaths[randomVersion]}/phase${currentPhase + 1}/${word}.mp3`;
+                            uploadAudioToOSS(audioBlob, audioFilename);
+
+                            // Optional: Display recording success message
+                            console.log('Recording saved!');
                         };
 
                         mediaRecorder.start();
@@ -191,47 +255,16 @@
             }
         }
 
-        // 进入下一个单词
-        function nextWord() {
-            currentIndex++;
-            if (currentIndex < phases[currentPhase].content.length) {
-                renderWord();
-            } else {
+        function nextPhase() {
+            if (currentPhase < phases.length - 1) {
                 currentPhase++;
-                if (currentPhase < phases.length) {
-                    renderWord();
-                } else {
-                    alert("Test complete!");
-                }
+                renderInstructions();
+            } else {
+                phaseContentDiv.style.display = "none";
+                nextWordButton.style.display = "none";
+                document.body.innerHTML = "<div class='thank-you'>Thank you for participating!</div>";
             }
         }
-
-        // 上传音频文件到 OSS
-        function uploadAudioToOSS(audioBlob, filename) {
-            client.put(filename, audioBlob).then(result => {
-                console.log('File uploaded successfully:', result);
-            }).catch(err => {
-                console.error('File upload failed:', err);
-            });
-        }
-
-        // 上传调查数据
-        function uploadSurveyDataToOSS(surveyData) {
-            const filename = `survey_${respondentID}_${randomVersion}.json`;
-
-            const formData = new FormData();
-            formData.append("file", new Blob([JSON.stringify(surveyData)], { type: 'application/json' }), filename);
-
-            // 上传到 OSS
-            client.put(filename, formData).then(result => {
-                console.log('Survey data uploaded successfully:', result);
-            }).catch(err => {
-                console.error('Survey data upload failed:', err);
-            });
-        }
-
-        // 上传调查数据
-        uploadSurveyDataToOSS(surveyData);
     </script>
 </body>
 </html>
