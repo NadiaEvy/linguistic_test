@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Memory Test</title>
-    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="icon" href="favicon.ico" type="image/x-icon"> <!-- 确保路径正确 -->
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -19,7 +19,7 @@
         }
         .container {
             width: 100%;
-            max-width: 450px;
+            max-width: 480px;
             padding: 20px;
             background: #fff;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -41,28 +41,16 @@
             background-color: #6c757d;
             cursor: not-allowed;
         }
-        .form-field {
-            margin-bottom: 15px;
-        }
-        label {
-            font-size: 14px;
-            display: block;
-            margin-bottom: 5px;
-            text-align: left;
-        }
-        input, select {
-            width: 100%;
-            padding: 12px;
-            font-size: 16px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            box-sizing: border-box;
+        .word {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 20px 0;
+            text-align: center;
         }
         .thank-you {
             font-size: 24px;
             font-weight: bold;
-            color: #28a745;
-            text-align: center;
+            color: #007bff;
             margin-top: 20px;
         }
     </style>
@@ -89,7 +77,7 @@
         let audioStream;
         let audioChunks = [];
         const responses = [];
-        const randomVersion = Math.floor(Math.random() * 4) + 1; // Randomly select version 1-4
+        const randomVersion = Math.floor(Math.random() * 4) + 1;
 
         console.log(`Random version selected: ${randomVersion}`);
 
@@ -100,112 +88,87 @@
         const nextWordButton = document.getElementById("next-word-button");
 
         const phases = [
-            { instructions: "Read aloud! Pronounce the word and record.", content: ["pit", "pat", "pot", "tip", "tap", "top"], record: true },
-            { instructions: "Follow the audio! Pronounce after hearing.", content: ["pit", "pat", "pot", "tip", "tap", "top"], audio: true, record: true },
-            { instructions: "Memory test! Have you seen this word?", content: ["cat", "tip", "cop", "pick", "pat"], test: true },
+            { instructions: "Read aloud! Pronounce the word and record.", content: ["pit", "pat", "bit", "bat"] },
+            { instructions: "Repeat the phrase!", content: ["The quick brown fox", "Jumps over the lazy dog"] }
         ];
 
-        const versionPaths = {
-            1: "audio/1/word",
-            2: "audio/2/word",
-            3: "audio/3/word",
-            4: "audio/4/word",
+        startTestButton.onclick = () => {
+            instructionsDiv.style.display = 'block';
+            instructionsDiv.innerHTML = "Instructions: Read aloud the words or phrases presented in each phase.";
+            startPhaseButton.style.display = 'block';
         };
 
-        async function renderInstructions() {
-            instructionsDiv.innerHTML = `
-                <h2>Survey Data</h2>
-                <ul>
-                    <li>Grade: ${surveyData.grade}</li>
-                    <li>Preferred Accent: ${surveyData["preferred-accent"]}</li>
-                    <li>Gender: ${surveyData.gender}</li>
-                    <li>Languages: ${surveyData.languages}</li>
-                    <li>Dialects: ${surveyData.dialects}</li>
-                    <li>Learning Started: ${surveyData["learning-start"]}</li>
-                </ul>
-                <h3>Instructions</h3>
-                <p>${phases[currentPhase].instructions}</p>
-            `;
-            instructionsDiv.style.display = 'block';
-            startPhaseButton.style.display = 'block';
-        }
+        startPhaseButton.onclick = () => {
+            startPhaseButton.style.display = 'none';
+            nextWordButton.style.display = 'block';
+            showPhaseContent();
+        };
 
-        startTestButton.addEventListener("click", () => {
-            startTestButton.style.display = "none";
-            renderInstructions();
-        });
-
-        startPhaseButton.addEventListener("click", () => {
-            instructionsDiv.style.display = "none";
-            startPhaseButton.style.display = "none";
-            currentIndex = 0;
-            renderWord();
-        });
-
-        nextWordButton.addEventListener("click", () => {
-            nextWord();
-        });
-
-        function renderWord() {
-            const word = phases[currentPhase].content[currentIndex];
-            phaseContentDiv.innerHTML = `
-                <h3>Word: ${word}</h3>
-                <button id="start-recording" onclick="startRecording()">Start Recording</button>
-            `;
-            phaseContentDiv.style.display = "block";
-        }
-
-        function startRecording() {
-            const word = phases[currentPhase].content[currentIndex];
-            const button = document.getElementById("start-recording");
-            const nextWordButton = document.getElementById("next-word-button");
-
-            if (button.textContent === "Start Recording") {
-                navigator.mediaDevices.getUserMedia({ audio: true })
-                    .then(stream => {
-                        audioStream = stream;
-                        mediaRecorder = new MediaRecorder(stream);
-                        mediaRecorder.ondataavailable = event => {
-                            audioChunks.push(event.data);
-                        };
-                        mediaRecorder.onstop = () => {
-                            const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
-                            const audioUrl = URL.createObjectURL(audioBlob);
-                            const audio = new Audio(audioUrl);
-                            audio.play();
-
-                            const formData = new FormData();
-                            formData.append("file", audioBlob, `${word}.mp3`);
-                            formData.append("word", word);
-                            formData.append("version", randomVersion);
-                            formData.append("respondentID", localStorage.getItem("respondentID"));
-
-                            // Your upload logic goes here
-                            alert("Recording saved!");
-                        };
-
-                        mediaRecorder.start();
-                        button.textContent = "Stop Recording";
-                    });
-            } else {
-                mediaRecorder.stop();
-                button.textContent = "Start Recording";
-                nextWordButton.style.display = "block";
-            }
-        }
-
-        function nextWord() {
-            currentIndex++;
+        nextWordButton.onclick = () => {
             if (currentIndex < phases[currentPhase].content.length) {
-                renderWord();
+                recordAudio(phases[currentPhase].content[currentIndex]);
             } else {
                 currentPhase++;
+                currentIndex = 0;
                 if (currentPhase < phases.length) {
-                    renderWord();
+                    showPhaseContent();
                 } else {
-                    alert("Test complete!");
+                    alert("Test completed!");
+                    uploadData();
                 }
             }
+        };
+
+        function showPhaseContent() {
+            phaseContentDiv.innerHTML = `
+                <h2>${phases[currentPhase].instructions}</h2>
+                <h3>${phases[currentPhase].content[currentIndex]}</h3>
+            `;
+            nextWordButton.disabled = false;
+        }
+
+        function recordAudio(word) {
+            console.log("Recording:", word);
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                audioStream = stream;
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.start();
+
+                mediaRecorder.ondataavailable = function(event) {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = function() {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+                    audioChunks = [];
+                    saveAudio(word, audioBlob);
+                };
+
+                setTimeout(() => {
+                    mediaRecorder.stop();
+                }, 5000); // Record for 5 seconds
+            });
+        }
+
+        function saveAudio(word, audioBlob) {
+            const formData = new FormData();
+            formData.append('file', audioBlob);
+            formData.append('word', word);
+            formData.append('respondentID', surveyData.respondentID);
+
+            fetch('/upload', { method: 'POST', body: formData });
+        }
+
+        function uploadData() {
+            const formData = new FormData();
+            formData.append('surveyData', JSON.stringify(surveyData));
+            formData.append('responses', JSON.stringify(responses));
+            formData.append('version', randomVersion);
+
+            fetch('/save-data', { method: 'POST', body: formData });
         }
     </script>
 </body>
