@@ -155,6 +155,12 @@
                 audio.onended = () => {
                     nextWordButton.style.display = "block";
                     nextWordButton.disabled = false;  // Enable the Next Word button after audio ends
+
+                    // Add recording button after audio ends
+                    const recordButton = document.createElement("button");
+                    recordButton.textContent = "Start Recording";
+                    recordButton.onclick = () => toggleRecording(word, recordButton);
+                    phaseContentDiv.appendChild(recordButton);
                 };
             } 
             // Handle Phase 1: Display word and recording button
@@ -221,10 +227,9 @@
                         try {
                             const result = await client.put(fileName, audioBlob);
                             console.log(`Uploaded successfully: ${result.url}`);
-                            button.textContent = "Recording Submitted"; // Change button text after submission
-                            button.disabled = true; // Disable the button after submission
+                            button.textContent = "Recording Submitted";
                             nextWordButton.style.display = "block";
-                            nextWordButton.disabled = false;  // Enable the Next Word button
+                            nextWordButton.disabled = false;
                         } catch (err) {
                             console.error('Upload failed:', err);
                         }
@@ -277,6 +282,7 @@
         }
 
         startTestButton.addEventListener("click", initializeTest);
+
     </script>
 </body>
 </html>
