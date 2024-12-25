@@ -150,16 +150,19 @@
                 audio.controls = true;
                 phaseContentDiv.appendChild(audio);
 
-                // Show the next word button after the audio ends
-                nextWordButton.style.display = "none";
-                audio.onended = () => {
-                    nextWordButton.style.display = "block";
+                // Avoid adding multiple "Next Word" buttons
+                const existingNextButton = document.getElementById("next-word-button");
+                if (!existingNextButton) {
+                    nextWordButton.style.display = "none";
+                    audio.onended = () => {
+                        nextWordButton.style.display = "block";
 
-                    const recordButton = document.createElement("button");
-                    recordButton.textContent = "Start Recording";
-                    recordButton.onclick = () => toggleRecording(word, recordButton);
-                    phaseContentDiv.appendChild(recordButton);
-                };
+                        const recordButton = document.createElement("button");
+                        recordButton.textContent = "Start Recording";
+                        recordButton.onclick = () => toggleRecording(word, recordButton);
+                        phaseContentDiv.appendChild(recordButton);
+                    };
+                }
             } 
             // Handle Phase 1: Display word and recording button
             else if (phase.record) {
@@ -236,53 +239,37 @@
 
                     mediaRecorder.start();
                     button.textContent = "Stop Recording";
-                } else {
+                } else if (mediaRecorder.state === "recording") {
                     mediaRecorder.stop();
-                    button.textContent = "Start Recording";
+                    button.textContent = "Recording stopped. Waiting...";
                 }
             }
         }
 
-        nextWordButton.addEventListener("click", () => {
-            const phase = phases[currentPhase];
-            currentIndex++;
-            if (currentIndex < phase.content.length) {
-                renderWord();
-            } else {
-                currentIndex = 0;
-                nextPhase();
-            }
-        });
-
         function nextWord() {
             const phase = phases[currentPhase];
             currentIndex++;
-            if (currentIndex < phase.content.length) {
-                renderWord();
-            } else {
+
+            if (currentIndex >= phase.content.length) {
                 currentIndex = 0;
-                nextPhase();
-            }
-        }
+                currentPhase++;
 
-        function nextPhase() {
-            currentPhase++;
-            if (currentPhase < phases.length) {
-                renderInstructions();
+                if (currentPhase >= phases.length) {
+                    showThankYou();
+                } else {
+                    renderInstructions();
+                }
             } else {
-                displayThankYou();
+                renderWord();
             }
         }
 
-        function displayThankYou() {
-            document.getElementById("app").innerHTML = `
-                <div class="thank-you">
-                    Well done!Thank you for your participation.
-                </div>`;
+        function showThankYou() {
+            phaseContentDiv.innerHTML = '<div class="thank-you">Thank you for participating!</div>';
+            nextWordButton.style.display = "none";
         }
 
         startTestButton.addEventListener("click", initializeTest);
-
     </script>
 </body>
 </html>
