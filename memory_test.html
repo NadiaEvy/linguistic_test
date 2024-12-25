@@ -148,10 +148,17 @@
                 const audioPath = `${versionPaths[randomVersion]}/${word}.mp3`;
                 audio.src = audioPath;
                 audio.controls = true;
+                audio.preload = "auto"; // Ensures the audio loads in advance
+
                 phaseContentDiv.appendChild(audio);
 
                 // Hide "Next Word" button until audio finishes
                 nextWordButton.style.display = "none";
+
+                audio.oncanplaythrough = () => {
+                    audio.play(); // Start playback once the audio can play through
+                };
+
                 audio.onended = () => {
                     nextWordButton.style.display = "block";
                     nextWordButton.disabled = false;  // Enable the Next Word button after audio ends
@@ -286,7 +293,6 @@
         }
 
         startTestButton.addEventListener("click", initializeTest);
-
     </script>
 </body>
 </html>
