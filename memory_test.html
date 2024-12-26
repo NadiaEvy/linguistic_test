@@ -101,6 +101,7 @@
             }
             return respondentId;
         }
+
         async function initializeMicrophone() {
             try {
                 audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -224,16 +225,15 @@
 
                     mediaRecorder.onstop = async () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
-                        const respondentId = getRespondentId();
+                        const respondentId = getRespondentId();  // Use this one instead of redeclaring
+
                         // Build folder path using survey data
                         const { grade, "preferred-accent": accent, gender, "learning-start": startAge, languages, dialects } = surveyData;
                         const folderPath = `${grade}_${accent}_${gender}_${startAge}_${languages}_${dialects}/`;
-                        const respondentId = localStorage.getItem("respondentId") || `resp_${Date.now()}`;
 
                         const phaseFolder = `phase${currentPhase + 1}`;  // e.g., phase1, phase2
                         const versionFolder = `v${randomVersion}`; // v1, v2, v3, v4
                         const fileName = `${respondentId}/${folderPath}${phaseFolder}/${versionFolder}/${word}_${Date.now()}.mp3`;
-                        const fileName = `${respondentId}/${phaseFolder}/${versionFolder}/${word}_${Date.now()}.mp3`;
 
                         const client = new OSS({
                             region: 'oss-rg-china-mainland',
