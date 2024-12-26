@@ -1,305 +1,128 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Memory Test</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            background-color: #f8f9fa;
-        }
-        .container {
-            width: 100%;
-            max-width: 480px;
-            padding: 20px;
-            background: #fff;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            text-align: center;
-        }
-        button {
-            margin: 10px 0;
-            padding: 15px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 18px;
-            cursor: pointer;
-            width: 100%;
-        }
-        button:disabled {
-            background-color: #6c757d;
-            cursor: not-allowed;
-        }
-        .word {
-            font-size: 48px;
-            font-weight: bold;
-            margin: 20px 0;
-            text-align: center;
-        }
-        .thank-you {
-            font-size: 24px;
-            font-weight: bold;
-            color: #007bff;
-            margin-top: 20px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container" id="app">
-        <h1>Memory Test</h1>
-        <button id="start-test-button">Start Test</button>
-        <div id="instructions" style="display: none;"></div>
-        <div id="phase-content" style="display: none;"></div>
-        <button id="start-phase-button" style="display: none;">Start Phase</button>
-        <button id="next-word-button" style="display: none;" disabled>Next Word</button>
-    </div>
+function renderWord() {
+    const phase = phases[currentPhase];
+    const word = phase.content[currentIndex];
+    phaseContentDiv.innerHTML = "";
+    phaseContentDiv.style.display = "block";
 
-    <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.7.0.min.js"></script>
-    <script>
-        const surveyData = JSON.parse(localStorage.getItem('surveyData')) || {};
-        let currentPhase = 0;
-        let currentIndex = 0;
-        let mediaRecorder;
-        let audioStream;
-        let audioChunks = [];
-        const responses = [];
-        const randomVersion = Math.floor(Math.random() * 4) + 1;
-        const startTestButton = document.getElementById("start-test-button");
-        const instructionsDiv = document.getElementById("instructions");
-        const phaseContentDiv = document.getElementById("phase-content");
-        const startPhaseButton = document.getElementById("start-phase-button");
-        const nextWordButton = document.getElementById("next-word-button");
+    // Phase 2: Audio playback, recording, and enabling Next Word after stop
+    if (phase.audio) {
+        const audio = document.createElement("audio");
+        const audioPath = `${versionPaths[randomVersion]}/${word}.mp3`;
+        audio.src = audioPath;
+        audio.controls = true;
+        audio.preload = "auto"; // Ensures audio preloading
 
-        const phases = [
-            { instructions: "Read aloud! This will help you memorize them better！", content: ["pit", "pat", "pot", "tip", "tap", "top"], record: true },
-            { instructions: "Follow the audio! He/She is willing to enhance your memory!", content: ["pit", "pat", "pot", "tip", "tap", "top"], audio: true, record: true },
-            { instructions: "Memory test! Have you seen this word?", content: ["cat", "tip", "cop", "pick", "pat"], test: true },
-        ];
+        phaseContentDiv.appendChild(audio);
 
-        const versionPaths = {
-            1: "audio/1/word",
-            2: "audio/2/word",
-            3: "audio/3/word",
-            4: "audio/4/word",
+        // Hide "Next Word" button until audio finishes and recording is stopped
+        nextWordButton.style.display = "none";
+        nextWordButton.disabled = true;
+
+        audio.oncanplaythrough = () => {
+            audio.play(); // Start playback once the audio can play through
         };
 
-        function getRespondentId() {
-            let respondentId = localStorage.getItem("respondentId");
-            if (!respondentId) {
-                respondentId = "resp_" + Date.now();
-                localStorage.setItem("respondentId", respondentId);
+        audio.onended = () => {
+            // Don't show Next Word until recording is stopped
+            if (mediaRecorder && mediaRecorder.state === "inactive") {
+                nextWordButton.style.display = "block";
+                nextWordButton.disabled = false; // Enable the Next Word button after audio ends
             }
-            return respondentId;
+        };
+
+        // Add recording button only once when audio starts playing
+        if (!document.getElementById("record-button")) {
+            const recordButton = document.createElement("button");
+            recordButton.id = "record-button";  // Set an ID to identify the button
+            recordButton.textContent = "Start Recording";
+            recordButton.onclick = () => toggleRecording(word, recordButton);
+            phaseContentDiv.appendChild(recordButton);
         }
+    }
+    // Handle Phase 1: Display word and recording button
+    else if (phase.record) {
+        const wordDiv = document.createElement("div");
+        wordDiv.className = "word";
+        wordDiv.textContent = word;
+        phaseContentDiv.appendChild(wordDiv);
 
-        async function initializeMicrophone() {
-            try {
-                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(audioStream);
-                console.log("Microphone initialized.");
-            } catch (error) {
-                alert("Microphone access failed: " + error.message);
-            }
-        }
+        const recordButton = document.createElement("button");
+        recordButton.textContent = "Start Recording";
+        recordButton.onclick = () => toggleRecording(word, recordButton);
+        phaseContentDiv.appendChild(recordButton);
+    }
+    // Handle Phase 3: Display yes/no buttons
+    else if (phase.test) {
+        const wordDiv = document.createElement("div");
+        wordDiv.className = "word";
+        wordDiv.textContent = word;
+        phaseContentDiv.appendChild(wordDiv);
 
-        function initializeTest() {
-            initializeMicrophone();
-            startTestButton.style.display = "none";
-            renderInstructions();
-        }
+        const yesButton = document.createElement("button");
+        yesButton.textContent = "Yes";
+        yesButton.onclick = nextWord;
+        yesButton.onclick = () => { 
+            responses.push({ word, correct: phase.content.includes(word) }); 
+            nextWord(); 
+        };
 
-        function renderInstructions() {
-            const phase = phases[currentPhase];
-            instructionsDiv.textContent = phase.instructions;
-            instructionsDiv.style.display = "block";
-            phaseContentDiv.style.display = "none";
-            startPhaseButton.style.display = "block";
-            nextWordButton.style.display = "none";
-            nextWordButton.disabled = true;
+        const noButton = document.createElement("button");
+        noButton.textContent = "No";
+        noButton.onclick = nextWord;
+        noButton.onclick = () => { 
+            responses.push({ word, correct: !phase.content.includes(word) }); 
+            nextWord(); 
+        };
 
-            currentIndex = 0;
-        }
+        phaseContentDiv.appendChild(yesButton);
+        phaseContentDiv.appendChild(noButton);
+    }
 
-        startPhaseButton.addEventListener("click", () => {
-            instructionsDiv.style.display = "none";
-            startPhaseButton.style.display = "none";
-            renderWord();
-        });
+    // Hide "Next Word" button until task completion
+    nextWordButton.style.display = "none";
+    nextWordButton.disabled = true;
+}
 
-        function renderWord() {
-            const phase = phases[currentPhase];
-            const word = phase.content[currentIndex];
-            phaseContentDiv.innerHTML = "";
-            phaseContentDiv.style.display = "block";
+function toggleRecording(word, button) {
+    if (mediaRecorder) {
+        if (mediaRecorder.state === "inactive") {
+            audioChunks = [];
+            mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
 
-            // Handle Phase 2: Audio playback and then show recording button
-            if (phase.audio) {
-                const audio = document.createElement("audio");
-                const audioPath = `${versionPaths[randomVersion]}/${word}.mp3`;
-                audio.src = audioPath;
-                audio.controls = true;
-                audio.preload = "auto"; // Ensures the audio loads in advance
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
+                const respondentId = getRespondentId();  // Use this one instead of redeclaring
 
-                phaseContentDiv.appendChild(audio);
+                // Build folder path using survey data
+                const { grade, "preferred-accent": accent, gender, "learning-start": startAge, languages, dialects } = surveyData;
+                const folderPath = `${grade}_${accent}_${gender}_${startAge}_${languages}_${dialects}/`;
 
-                // Hide "Next Word" button until audio finishes
-                nextWordButton.style.display = "none";
+                const phaseFolder = `phase${currentPhase + 1}`;  // e.g., phase1, phase2
+                const versionFolder = `v${randomVersion}`; // v1, v2, v3, v4
+                const fileName = `${respondentId}/${folderPath}${phaseFolder}/${versionFolder}/${word}_${Date.now()}.mp3`;
 
-                audio.oncanplaythrough = () => {
-                    audio.play(); // Start playback once the audio can play through
-                };
+                const client = new OSS({
+                    region: 'oss-rg-china-mainland',
+                    accessKeyId: 'LTAI5tMVY9Jpm2MroinSie5z',
+                    accessKeySecret: 'BU384EPr4lgFxnBEgwx041JaqSFts6',
+                    bucket: 'linguisticstest',
+                });
 
-                audio.onended = () => {
+                try {
+                    const result = await client.put(fileName, audioBlob);
+                    console.log(`Uploaded successfully: ${result.url}`);
+                    button.textContent = "Recording Submitted";
                     nextWordButton.style.display = "block";
-                    nextWordButton.disabled = false;  // Enable the Next Word button after audio ends
-                    // Check if the record button already exists to avoid duplication
-                    if (!document.getElementById("record-button")) {
-                        // Add recording button only once
-                        const recordButton = document.createElement("button");
-                        recordButton.id = "record-button";  // Set an ID to identify the button
-                        recordButton.textContent = "Start Recording";
-                        recordButton.onclick = () => toggleRecording(word, recordButton);
-                        phaseContentDiv.appendChild(recordButton);
-                    }
-                };
-            } 
-            // Handle Phase 1: Display word and recording button
-            else if (phase.record) {
-                const wordDiv = document.createElement("div");
-                wordDiv.className = "word";
-                wordDiv.textContent = word;
-                phaseContentDiv.appendChild(wordDiv);
-
-                const recordButton = document.createElement("button");
-                recordButton.textContent = "Start Recording";
-                recordButton.onclick = () => toggleRecording(word, recordButton);
-                phaseContentDiv.appendChild(recordButton);
-            }
-            // Handle Phase 3: Display yes/no buttons
-            else if (phase.test) {
-                const wordDiv = document.createElement("div");
-                wordDiv.className = "word";
-                wordDiv.textContent = word;
-                phaseContentDiv.appendChild(wordDiv);
-
-                const yesButton = document.createElement("button");
-                yesButton.textContent = "Yes";
-                yesButton.onclick = nextWord;
-                yesButton.onclick = () => { 
-                    responses.push({ word, correct: phase.content.includes(word) }); 
-                    nextWord(); 
-                };
-
-                const noButton = document.createElement("button");
-                noButton.textContent = "No";
-                noButton.onclick = nextWord;
-                noButton.onclick = () => { 
-                    responses.push({ word, correct: !phase.content.includes(word) }); 
-                    nextWord(); 
-                };
-
-                phaseContentDiv.appendChild(yesButton);
-                phaseContentDiv.appendChild(noButton);
-            }
-
-            // Hide "Next Word" button until task completion
-            nextWordButton.style.display = "none";
-            nextWordButton.disabled = true;
-        }
-
-        function toggleRecording(word, button) {
-            if (mediaRecorder) {
-                if (mediaRecorder.state === "inactive") {
-                    audioChunks = [];
-                    mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
-
-                    mediaRecorder.onstop = async () => {
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
-                        const respondentId = getRespondentId();  // Use this one instead of redeclaring
-
-                        // Build folder path using survey data
-                        const { grade, "preferred-accent": accent, gender, "learning-start": startAge, languages, dialects } = surveyData;
-                        const folderPath = `${grade}_${accent}_${gender}_${startAge}_${languages}_${dialects}/`;
-
-                        const phaseFolder = `phase${currentPhase + 1}`;  // e.g., phase1, phase2
-                        const versionFolder = `v${randomVersion}`; // v1, v2, v3, v4
-                        const fileName = `${respondentId}/${folderPath}${phaseFolder}/${versionFolder}/${word}_${Date.now()}.mp3`;
-
-                        const client = new OSS({
-                            region: 'oss-rg-china-mainland',
-                            accessKeyId: 'LTAI5tMVY9Jpm2MroinSie5z',
-                            accessKeySecret: 'BU384EPr4lgFxnBEgwx041JaqSFts6',
-                            bucket: 'linguisticstest',
-                        });
-
-                        try {
-                            const result = await client.put(fileName, audioBlob);
-                            console.log(`Uploaded successfully: ${result.url}`);
-                            button.textContent = "Recording Submitted";
-                            nextWordButton.style.display = "block";
-                            nextWordButton.disabled = false;
-                        } catch (err) {
-                            console.error('Upload failed:', err);
-                        }
-                    };
-                    mediaRecorder.start();
-                    button.textContent = "Stop Recording";
-                } else {
-                    mediaRecorder.stop();
-                    button.textContent = "Recording Stopped";
+                    nextWordButton.disabled = false;
+                } catch (err) {
+                    console.error('Upload failed:', err);
                 }
-            }
+            };
+            mediaRecorder.start();
+            button.textContent = "Stop Recording";
+        } else {
+            mediaRecorder.stop();
+            button.textContent = "Recording Stopped";
         }
-
-        nextWordButton.addEventListener("click", () => {
-            const phase = phases[currentPhase];
-            currentIndex++;
-            if (currentIndex < phase.content.length) {
-                renderWord();
-            } else {
-                currentIndex = 0;
-                nextPhase();
-            }
-        });
-
-        function nextWord() {
-            const phase = phases[currentPhase];
-            currentIndex++;
-            if (currentIndex < phase.content.length) {
-                renderWord();
-            } else {
-                currentIndex = 0;
-                nextPhase();
-            }
-        }
-
-        function nextPhase() {
-            currentPhase++;
-            if (currentPhase < phases.length) {
-                renderInstructions();
-            } else {
-                displayThankYou();
-            }
-        }
-
-        function displayThankYou() {
-            document.getElementById("app").innerHTML = `
-                <div class="thank-you">
-                    Well done! Thank you for your participation.
-                </div>`;
-        }
-
-        startTestButton.addEventListener("click", initializeTest);
-    </script>
-</body>
-</html>
+    }
+}
