@@ -274,40 +274,48 @@
         function toggleRecording(word, button) {
             if (mediaRecorder) {
                 if (mediaRecorder.state === "inactive") {
+                    // Start recording
                     audioChunks = [];
                     mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
-
+    
                     mediaRecorder.onstop = async () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
                         const respondentId = getRespondentId();
-
+    
                         const { grade, "preferred-accent": accent, gender, "learning-start": startAge, languages, dialects } = surveyData;
                         const folderPath = `${grade}_${accent}_${gender}_${startAge}_${languages}_${dialects}/`;
-
+    
                         const phaseFolder = `phase${currentPhase + 1}`;  
                         const fileName = `${folderPath}${phaseFolder}/${word}_${Date.now()}.mp3`;
-
+    
                         const client = new OSS({
                             region: 'oss-rg-china-mainland',
                             accessKeyId: 'LTAI5tMVY9Jpm2MroinSie5z',
                             accessKeySecret: 'BU384EPr4lgFxnBEgwx041JaqSFts6',
                             bucket: 'linguisticstest',
                         });
-
+    
                         try {
                             const result = await client.put(fileName, audioBlob);
                             console.log(`Uploaded to OSS: ${result.url}`);
                             responses.push({ word, responseUrl: result.url });
+    
+                            // Enable Next Word button after successful upload
                             nextWordButton.style.display = "block";
                             nextWordButton.disabled = false;
                         } catch (error) {
                             console.error("Error uploading file to OSS:", error);
+                            // Enable the button even if there's an error (optional)
+                            nextWordButton.style.display = "block";
+                            nextWordButton.disabled = false;
                         }
                     };
-
+    
+                    // Start the recording
                     mediaRecorder.start();
                     button.textContent = "Stop Recording";
                 } else {
+                    // Stop recording
                     mediaRecorder.stop();
                     button.textContent = "Recording... Please Wait";
                     button.disabled = true;
@@ -315,19 +323,6 @@
             }
         }
 
-        function nextWord() {
-            currentIndex++;
-            if (currentIndex < phases[currentPhase].content.length) {
-                renderWord();
-            } else {
-                if (currentPhase < phases.length - 1) {
-                    currentPhase++;
-                    renderInstructions();
-                } else {
-                    endTest();
-                }
-            }
-        }
 
         function endTest() {
             phaseContentDiv.innerHTML = "<p>Thank you for participating in the test!</p>";
