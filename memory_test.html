@@ -52,11 +52,27 @@
             color: #007bff;
             margin-top: 20px;
         }
+        .progress-bar {
+            width: 100%;
+            background-color: #e9ecef;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .progress-bar div {
+            height: 20px;
+            background-color: #007bff;
+            width: 0;
+            transition: width 0.3s;
+        }
     </style>
 </head>
 <body>
     <div class="container" id="app">
         <h1>Memory Test</h1>
+        <div class="progress-bar" id="progress-bar" style="display: none;"> <!-- Changed -->
+            <div></div>
+        </div>
         <button id="start-test-button">Start Test</button>
         <div id="instructions" style="display: none;"></div>
         <div id="phase-content" style="display: none;"></div>
@@ -78,6 +94,7 @@
         const phaseContentDiv = document.getElementById("phase-content");
         const startPhaseButton = document.getElementById("start-phase-button");
         const nextWordButton = document.getElementById("next-word-button");
+        const progressBar = document.getElementById("progress-bar"); // Changed
 
         const phases = [
             { instructions: "Read aloud! This will help you memorize them better！", content: ["pit", "pat", "pot", "tip", "tap", "top"], record: true },
@@ -92,6 +109,35 @@
             4: "audio/4/word",
         };
 
+        async function preloadAudio() { // Changed
+            const phase2 = phases[1];
+            if (!phase2.audio) return;
+
+            progressBar.style.display = "block";
+            const progress = progressBar.querySelector("div");
+            const totalFiles = phase2.content.length;
+            let loadedFiles = 0;
+
+            await Promise.all(
+                phase2.content.map(word => {
+                    return new Promise((resolve) => {
+                        const audio = new Audio();
+                        const audioPath = `${versionPaths[randomVersion]}/${word}.mp3`;
+                        audio.src = audioPath;
+                        audio.preload = "auto";
+                        audio.oncanplaythrough = () => {
+                            loadedFiles++;
+                            progress.style.width = `${(loadedFiles / totalFiles) * 100}%`;
+                            resolve();
+                        };
+                        audio.onerror = () => resolve();
+                    });
+                })
+            );
+
+            progressBar.style.display = "none";
+        }
+
         async function initializeMicrophone() {
             try {
                 audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -102,9 +148,10 @@
             }
         }
 
-        function initializeTest() {
-            initializeMicrophone();
+        async function initializeTest() {
             startTestButton.style.display = "none";
+            await preloadAudio(); // Changed
+            initializeMicrophone();
             renderInstructions();
         }
 
