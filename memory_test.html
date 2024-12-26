@@ -134,24 +134,26 @@
             let loadedCount = 0;
             let hasError = false;
 
-            phase2.content.forEach((word) => {
+            phase2.content.forEach((word, index) => {
                 const audio = new Audio(`${versionPaths[randomVersion]}/${word}.mp3`);
 
-                function onComplete() {
-                    if (hasError) return; 
+                audio.onloadeddata = () => {
+                    if (hasError) return;
                     loadedCount++;
                     progressBar.style.width = `${(loadedCount / totalFiles) * 100}%`;
                     if (loadedCount === totalFiles) {
                         finalizePreload();
                     }
-                }
-
-                audio.onloadeddata = onComplete;
+                };
 
                 audio.onerror = () => {
                     hasError = true;
                     console.error(`Failed to load ${word}. Continuing...`);
-                    onComplete();
+                    loadedCount++;
+                    progressBar.style.width = `${(loadedCount / totalFiles) * 100}%`;
+                    if (loadedCount === totalFiles) {
+                        finalizePreload();
+                    }
                 };
 
                 audioElements[word] = audio;
