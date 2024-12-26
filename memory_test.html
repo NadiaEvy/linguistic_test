@@ -136,34 +136,47 @@
             renderWord();
         });
 
+        // 预加载音频文件
         function preloadAudio() {
             const phase = phases[currentPhase];
             const audioPaths = [];
 
-            // 收集所有要播放的音频路径
             if (phase.audio) {
                 phase.content.forEach(word => {
                     const audioPath = `${versionPaths[randomVersion]}/${word}.mp3`;
                     audioPaths.push(audioPath);
                 });
 
-                // 创建预加载音频对象并设置为自动加载
-                audioPaths.forEach(path => {
-                    const audio = new Audio();
-                    audio.src = path;
-                    audio.preload = "auto";  // 设置为预加载音频
+                // 创建并加载所有音频文件
+                const promises = audioPaths.map(path => {
+                    return new Promise((resolve, reject) => {
+                        const audio = new Audio();
+                        audio.src = path;
+                        audio.preload = "auto"; // 设置为预加载
+                        audio.onload = resolve;
+                        audio.onerror = () => reject(`Failed to load: ${path}`);
+                    });
                 });
+
+                // 等待所有音频加载完毕
+                Promise.all(promises)
+                    .then(() => {
+                        console.log("All audio files loaded successfully.");
+                    })
+                    .catch(error => {
+                        console.error("Audio preload failed:", error);
+                    });
             }
         }
+
+        // 页面加载时预加载音频
+        preloadAudio();
 
         function renderWord() {
             const phase = phases[currentPhase];
             const word = phase.content[currentIndex];
             phaseContentDiv.innerHTML = "";
             phaseContentDiv.style.display = "block";
-
-            // 预加载音频
-            preloadAudio();
 
             // Handle Phase 2: Audio playback and then show recording button
             if (phase.audio) {
