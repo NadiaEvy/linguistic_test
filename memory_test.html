@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Memory Test</title>
     <style>
-        /* Your existing styles */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -53,30 +52,11 @@
             color: #007bff;
             margin-top: 20px;
         }
-        .progress-bar {
-            width: 100%;
-            background-color: #e9ecef;
-            border-radius: 8px;
-            overflow: hidden;
-            margin: 20px 0;
-        }
-        .progress-bar-inner {
-            height: 20px;
-            width: 0;
-            background-color: #007bff;
-            transition: width 0.3s;
-        }
     </style>
 </head>
 <body>
     <div class="container" id="app">
         <h1>Memory Test</h1>
-        <div id="progress-section" style="display: none;">
-            <p>Loading audio files...</p>
-            <div class="progress-bar">
-                <div class="progress-bar-inner" id="progress-bar"></div>
-            </div>
-        </div>
         <button id="start-test-button">Start Test</button>
         <div id="instructions" style="display: none;"></div>
         <div id="phase-content" style="display: none;"></div>
@@ -93,6 +73,7 @@
         let audioStream;
         let audioChunks = [];
         const responses = [];
+        const randomVersion = Math.floor(Math.random() * 4) + 1;
         const startTestButton = document.getElementById("start-test-button");
         const instructionsDiv = document.getElementById("instructions");
         const phaseContentDiv = document.getElementById("phase-content");
@@ -111,60 +92,6 @@
             3: "audio/3/word",
             4: "audio/4/word",
         };
-
-        let randomVersion;
-        const versionCounts = JSON.parse(localStorage.getItem('versionCounts')) || { 1: 0, 2: 0, 3: 0, 4: 0 };
-
-        function selectVersion() {
-            randomVersion = Object.keys(versionCounts).reduce((a, b) => versionCounts[a] < versionCounts[b] ? a : b);
-            versionCounts[randomVersion]++;
-            localStorage.setItem('versionCounts', JSON.stringify(versionCounts));
-        }
-
-        const audioElements = {};
-
-        function preloadAudio() {
-            const progressSection = document.getElementById('progress-section');
-            const progressBar = document.getElementById('progress-bar');
-            progressSection.style.display = "block";
-            startTestButton.style.display = "none"; // Hide the "Start Test" button during loading
-
-            const phase2 = phases[1];
-            const totalFiles = phase2.content.length;
-
-            let loadedCount = 0;
-            let hasError = false;
-
-            phase2.content.forEach((word) => {
-                const audio = new Audio(`${versionPaths[randomVersion]}/${word}.mp3`);
-
-                audio.onloadeddata = () => {
-                    if (hasError) return;
-                    loadedCount++;
-                    progressBar.style.width = `${(loadedCount / totalFiles) * 100}%`;
-                    if (loadedCount === totalFiles) {
-                        finalizePreload();
-                    }
-                };
-
-                audio.onerror = () => {
-                    hasError = true;
-                    console.error(`Failed to load ${word}. Continuing...`);
-                    loadedCount++;
-                    progressBar.style.width = `${(loadedCount / totalFiles) * 100}%`;
-                    if (loadedCount === totalFiles) {
-                        finalizePreload();
-                    }
-                };
-
-                audioElements[word] = audio;
-            });
-
-            function finalizePreload() {
-                progressSection.style.display = "none";
-                startPhaseButton.style.display = "block"; // Show "Start Phase" button to move to Phase 1
-            }
-        }
 
         function getRespondentId() {
             let respondentId = localStorage.getItem("respondentId");
@@ -185,15 +112,10 @@
             }
         }
 
-        let isTestInitialized = false;
-
         function initializeTest() {
-            if (isTestInitialized) return; // Prevent re-initialization
-
-            isTestInitialized = true;
-            selectVersion();
-            preloadAudio();
             initializeMicrophone();
+            startTestButton.style.display = "none";
+            renderInstructions();
         }
 
         function renderInstructions() {
@@ -208,15 +130,31 @@
             currentIndex = 0;
         }
 
-        startTestButton.addEventListener("click", () => {
-            initializeTest();
-        });
-
         startPhaseButton.addEventListener("click", () => {
             instructionsDiv.style.display = "none";
             startPhaseButton.style.display = "none";
             renderWord();
         });
+
+        function preloadAudio() {
+            const phase = phases[currentPhase];
+            const audioPaths = [];
+
+            // 收集所有要播放的音频路径
+            if (phase.audio) {
+                phase.content.forEach(word => {
+                    const audioPath = `${versionPaths[randomVersion]}/${word}.mp3`;
+                    audioPaths.push(audioPath);
+                });
+
+                // 创建预加载音频对象并设置为自动加载
+                audioPaths.forEach(path => {
+                    const audio = new Audio();
+                    audio.src = path;
+                    audio.preload = "auto";  // 设置为预加载音频
+                });
+            }
+        }
 
         function renderWord() {
             const phase = phases[currentPhase];
@@ -224,20 +162,42 @@
             phaseContentDiv.innerHTML = "";
             phaseContentDiv.style.display = "block";
 
+            // 预加载音频
+            preloadAudio();
+
+            // Handle Phase 2: Audio playback and then show recording button
             if (phase.audio) {
-                const audio = audioElements[word];
+                const audio = document.createElement("audio");
+                const audioPath = `${versionPaths[randomVersion]}/${word}.mp3`;
+                audio.src = audioPath;
                 audio.controls = true;
+                audio.preload = "auto"; // Ensures the audio loads in advance
+
                 phaseContentDiv.appendChild(audio);
 
-                audio.onended = () => {
-                    const recordButton = document.createElement("button");
-                    recordButton.id = "record-button";
-                    recordButton.textContent = "Start Recording";
-                    recordButton.onclick = () => toggleRecording(word, recordButton);
-                    phaseContentDiv.appendChild(recordButton);
+                // Hide "Next Word" button until audio finishes
+                nextWordButton.style.display = "none";
+
+                audio.oncanplaythrough = () => {
+                    audio.play(); // Start playback once the audio can play through
                 };
-                audio.play();
+
+                audio.onended = () => {
+                    nextWordButton.style.display = "block";
+                    nextWordButton.disabled = false;  // Enable the Next Word button after audio ends
+
+                    // Check if the record button already exists to avoid duplication
+                    if (!document.getElementById("record-button")) {
+                        // Add recording button only once
+                        const recordButton = document.createElement("button");
+                        recordButton.id = "record-button";  // Set an ID to identify the button
+                        recordButton.textContent = "Start Recording";
+                        recordButton.onclick = () => toggleRecording(word, recordButton);
+                        phaseContentDiv.appendChild(recordButton);
+                    }
+                };
             } 
+            // Handle Phase 1: Display word and recording button
             else if (phase.record) {
                 const wordDiv = document.createElement("div");
                 wordDiv.className = "word";
@@ -249,6 +209,7 @@
                 recordButton.onclick = () => toggleRecording(word, recordButton);
                 phaseContentDiv.appendChild(recordButton);
             }
+            // Handle Phase 3: Display yes/no buttons
             else if (phase.test) {
                 const wordDiv = document.createElement("div");
                 wordDiv.className = "word";
@@ -267,6 +228,7 @@
                 phaseContentDiv.appendChild(noButton);
             }
 
+            // Hide "Next Word" button until task completion
             nextWordButton.style.display = "none";
             nextWordButton.disabled = true;
         }
@@ -274,61 +236,86 @@
         function toggleRecording(word, button) {
             if (mediaRecorder) {
                 if (mediaRecorder.state === "inactive") {
-                    // Start recording
                     audioChunks = [];
                     mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
-    
+
                     mediaRecorder.onstop = async () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
                         const respondentId = getRespondentId();
-    
+
+                        // Build folder path using survey data
                         const { grade, "preferred-accent": accent, gender, "learning-start": startAge, languages, dialects } = surveyData;
                         const folderPath = `${grade}_${accent}_${gender}_${startAge}_${languages}_${dialects}/`;
-    
-                        const phaseFolder = `phase${currentPhase + 1}`;  
-                        const fileName = `${folderPath}${phaseFolder}/${word}_${Date.now()}.mp3`;
-    
+
+                        const phaseFolder = `phase${currentPhase + 1}`;  // e.g., phase1, phase2
+                        const versionFolder = `v${randomVersion}`; // v1, v2, v3, v4
+                        const fileName = `${respondentId}/${folderPath}${phaseFolder}/${versionFolder}/${word}_${Date.now()}.mp3`;
+
                         const client = new OSS({
                             region: 'oss-rg-china-mainland',
                             accessKeyId: 'LTAI5tMVY9Jpm2MroinSie5z',
                             accessKeySecret: 'BU384EPr4lgFxnBEgwx041JaqSFts6',
                             bucket: 'linguisticstest',
                         });
-    
+
                         try {
                             const result = await client.put(fileName, audioBlob);
-                            console.log(`Uploaded to OSS: ${result.url}`);
-                            responses.push({ word, responseUrl: result.url });
-    
-                            // Enable Next Word button after successful upload
+                            console.log(`Uploaded successfully: ${result.url}`);
+                            button.textContent = "Recording Submitted";
                             nextWordButton.style.display = "block";
                             nextWordButton.disabled = false;
-                        } catch (error) {
-                            console.error("Error uploading file to OSS:", error);
-                            // Enable the button even if there's an error (optional)
-                            nextWordButton.style.display = "block";
-                            nextWordButton.disabled = false;
+                        } catch (err) {
+                            console.error('Upload failed:', err);
                         }
                     };
-    
-                    // Start the recording
                     mediaRecorder.start();
                     button.textContent = "Stop Recording";
                 } else {
-                    // Stop recording
                     mediaRecorder.stop();
-                    button.textContent = "Recording... Please Wait";
-                    button.disabled = true;
+                    button.textContent = "Recording Stopped";
                 }
             }
         }
 
+        nextWordButton.addEventListener("click", () => {
+            const phase = phases[currentPhase];
+            currentIndex++;
+            if (currentIndex < phase.content.length) {
+                renderWord();
+            } else {
+                currentIndex = 0;
+                nextPhase();
+            }
+        });
 
-        function endTest() {
-            phaseContentDiv.innerHTML = "<p>Thank you for participating in the test!</p>";
-            phaseContentDiv.style.display = "block";
-            nextWordButton.style.display = "none";
+        function nextWord() {
+            const phase = phases[currentPhase];
+            currentIndex++;
+            if (currentIndex < phase.content.length) {
+                renderWord();
+            } else {
+                currentIndex = 0;
+                nextPhase();
+            }
         }
+
+        function nextPhase() {
+            currentPhase++;
+            if (currentPhase < phases.length) {
+                renderInstructions();
+            } else {
+                displayThankYou();
+            }
+        }
+
+        function displayThankYou() {
+            document.getElementById("app").innerHTML = `
+                <div class="thank-you">
+                    Well done! Thank you for your participation.
+                </div>`;
+        }
+
+        startTestButton.addEventListener("click", initializeTest);
     </script>
 </body>
 </html>
