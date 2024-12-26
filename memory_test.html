@@ -93,6 +93,9 @@
             4: "audio/4/word",
         };
 
+        // Declare respondentId globally
+        let respondentId = getRespondentId();
+
         function getRespondentId() {
             let respondentId = localStorage.getItem("respondentId");
             if (!respondentId) {
@@ -161,17 +164,17 @@
 
                 audio.onended = () => {
                     nextWordButton.style.display = "block";
-                    nextWordButton.disabled = false;  // Enable the Next Word button after audio ends
-                    // Check if the record button already exists to avoid duplication
-                    if (!document.getElementById("record-button")) {
-                        // Add recording button only once
-                        const recordButton = document.createElement("button");
-                        recordButton.id = "record-button";  // Set an ID to identify the button
-                        recordButton.textContent = "Start Recording";
-                        recordButton.onclick = () => toggleRecording(word, recordButton);
-                        phaseContentDiv.appendChild(recordButton);
-                    }
+                    nextWordButton.disabled = true; // Initially disable until recording is stopped
                 };
+
+                // Add recording button only once
+                if (!document.getElementById("record-button")) {
+                    const recordButton = document.createElement("button");
+                    recordButton.id = "record-button";  // Set an ID to identify the button
+                    recordButton.textContent = "Start Recording";
+                    recordButton.onclick = () => toggleRecording(word, recordButton);
+                    phaseContentDiv.appendChild(recordButton);
+                }
             } 
             // Handle Phase 1: Display word and recording button
             else if (phase.record) {
@@ -226,10 +229,7 @@
                     mediaRecorder.onstop = async () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
 
-                        // Get respondentId only once
-                        const respondentId = getRespondentId();  // This retrieves or generates respondentId
-
-                        // Build folder path using survey data
+                        // Use global respondentId
                         const { grade, "preferred-accent": accent, gender, "learning-start": startAge, languages, dialects } = surveyData;
                         const folderPath = `${grade}_${accent}_${gender}_${startAge}_${languages}_${dialects}/`;
 
@@ -249,7 +249,7 @@
                             console.log(`Uploaded successfully: ${result.url}`);
                             button.textContent = "Recording Submitted";
                             nextWordButton.style.display = "block";
-                            nextWordButton.disabled = false;
+                            nextWordButton.disabled = false;  // Enable Next Word button after recording stops
                         } catch (err) {
                             console.error('Upload failed:', err);
                         }
