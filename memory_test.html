@@ -76,7 +76,7 @@
                 <div class="progress-bar-inner" id="progress-bar"></div>
             </div>
         </div>
-        <button id="start-test-button" style="display: none;">Start Test</button>
+        <button id="start-test-button">Start Test</button>
         <div id="instructions" style="display: none;"></div>
         <div id="phase-content" style="display: none;"></div>
         <button id="start-phase-button" style="display: none;">Start Phase</button>
@@ -126,7 +126,7 @@
             const progressSection = document.getElementById('progress-section');
             const progressBar = document.getElementById('progress-bar');
             progressSection.style.display = "block";
-            startTestButton.style.display = "none"; 
+            startTestButton.style.display = "none"; // Hide the "Start Test" button during loading
 
             const phase2 = phases[1];
             const totalFiles = phase2.content.length;
@@ -134,7 +134,7 @@
             let loadedCount = 0;
             let hasError = false;
 
-            phase2.content.forEach((word, index) => {
+            phase2.content.forEach((word) => {
                 const audio = new Audio(`${versionPaths[randomVersion]}/${word}.mp3`);
 
                 audio.onloadeddata = () => {
@@ -161,7 +161,7 @@
 
             function finalizePreload() {
                 progressSection.style.display = "none";
-                startTestButton.style.display = "block";
+                startTestButton.style.display = "block"; // Show the "Start Test" button after loading
             }
         }
 
@@ -201,6 +201,10 @@
 
             currentIndex = 0;
         }
+
+        startTestButton.addEventListener("click", () => {
+            initializeTest();
+        });
 
         startPhaseButton.addEventListener("click", () => {
             instructionsDiv.style.display = "none";
@@ -322,8 +326,6 @@
             phaseContentDiv.style.display = "block";
             nextWordButton.style.display = "none";
         }
-
-        initializeTest();
     </script>
 </body>
 </html>
