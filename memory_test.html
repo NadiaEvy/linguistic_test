@@ -57,7 +57,7 @@
 <body>
     <div class="container" id="app">
         <h1>Memory Test</h1>
-        <button id="start-test-button">Start Test</button>
+        <button id="start-test-button" disabled>Start Test</button>
         <div id="instructions" style="display: none;"></div>
         <div id="phase-content" style="display: none;"></div>
         <button id="start-phase-button" style="display: none;">Start Phase</button>
@@ -162,6 +162,8 @@
                 Promise.all(promises)
                     .then(() => {
                         console.log("All audio files loaded successfully.");
+                        // 一旦音频加载完成，启用“Start Test”按钮
+                        startTestButton.disabled = false;
                     })
                     .catch(error => {
                         console.error("Audio preload failed:", error);
