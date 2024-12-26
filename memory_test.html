@@ -243,8 +243,7 @@
                     phaseContentDiv.appendChild(recordButton);
                 };
                 audio.play();
-            } 
-            else if (phase.record) {
+            } else if (phase.record) {
                 const wordDiv = document.createElement("div");
                 wordDiv.className = "word";
                 wordDiv.textContent = word;
@@ -254,65 +253,67 @@
                 recordButton.textContent = "Start Recording";
                 recordButton.onclick = () => toggleRecording(word, recordButton);
                 phaseContentDiv.appendChild(recordButton);
-            } 
-            else if (phase.test) {
-                const wordDiv = document.createElement("div");
-                wordDiv.className = "word";
-                wordDiv.textContent = word;
-                phaseContentDiv.appendChild(wordDiv);
-
-                nextWordButton.style.display = "block";
-                nextWordButton.disabled = false;
             }
+
+            nextWordButton.style.display = "none";  // Hide Next Word button initially
         }
 
         function toggleRecording(word, recordButton) {
             if (mediaRecorder.state === "inactive") {
-                audioChunks = [];
-                mediaRecorder.start();
-                recordButton.textContent = "Stop Recording";
+                startRecording(word, recordButton);
             } else {
-                mediaRecorder.stop();
-                recordButton.textContent = "Recording Stopped";
+                stopRecording(word, recordButton);
             }
+        }
+
+        function startRecording(word, recordButton) {
+            audioChunks = [];
+            mediaRecorder.start();
+            recordButton.textContent = "Stop Recording";
+            console.log("Recording started...");
+        }
+
+        function stopRecording(word, recordButton) {
+            mediaRecorder.stop();
+            recordButton.textContent = "Recording stopped";
+            console.log("Recording stopped...");
 
             mediaRecorder.ondataavailable = (event) => {
                 audioChunks.push(event.data);
             };
 
             mediaRecorder.onstop = () => {
-                const blob = new Blob(audioChunks, { type: "audio/wav" });
-                const audioUrl = URL.createObjectURL(blob);
+                const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audioElement = new Audio(audioUrl);
+                audioElement.controls = true;
+                phaseContentDiv.appendChild(audioElement);
 
-                const audio = new Audio(audioUrl);
-                audio.controls = true;
-                phaseContentDiv.appendChild(audio);
-
-                const respondentId = getRespondentId();
-                const fileName = `${respondentId}_${word}.wav`;
-
-                uploadAudio(blob, fileName);
+                responses.push({ word, audio: audioUrl });
+                nextWordButton.style.display = "block";
+                nextWordButton.disabled = false;
             };
         }
 
-        function uploadAudio(blob, fileName) {
-            const ossClient = new OSS({
-                region: 'your-region',
-                accessKeyId: 'your-access-key-id',
-                accessKeySecret: 'your-access-key-secret',
-                bucket: 'your-bucket-name'
-            });
+        nextWordButton.addEventListener("click", () => {
+            currentIndex++;
+            if (currentIndex < phases[currentPhase].content.length) {
+                renderWord();
+            } else {
+                currentPhase++;
+                if (currentPhase < phases.length) {
+                    renderInstructions();
+                } else {
+                    showThankYouMessage();
+                }
+            }
+        });
 
-            const file = new Blob([blob], { type: 'audio/wav' });
-            const formData = new FormData();
-            formData.append('file', file, fileName);
-
-            ossClient.put(fileName, file).then(() => {
-                console.log("Audio uploaded successfully.");
-            }).catch((error) => {
-                console.error("Audio upload failed:", error);
-            });
+        function showThankYouMessage() {
+            submissionMessageDiv.textContent = "Thank you for completing the test!";
+            submissionMessageDiv.style.display = "block";
         }
+
     </script>
 </body>
 </html>
