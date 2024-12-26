@@ -101,7 +101,7 @@
             }
             return respondentId;
         }
-        
+
         async function initializeMicrophone() {
             try {
                 audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -152,37 +152,16 @@
 
                 phaseContentDiv.appendChild(audio);
 
-                // Create and display a progress bar
-                const progressBar = document.createElement("progress");
-                progressBar.id = "progress-bar";
-                progressBar.value = 0;
-                progressBar.max = 100;
-                phaseContentDiv.appendChild(progressBar);
-
                 // Hide "Next Word" button until audio finishes
                 nextWordButton.style.display = "none";
 
-                audio.onerror = () => {
-                    console.error("Failed to load the audio.");
-                    phaseContentDiv.innerHTML = "<p>Error loading audio. Please try again.</p>";
-                };
-
                 audio.oncanplaythrough = () => {
                     audio.play(); // Start playback once the audio can play through
-
-                    // Synchronize progress bar with audio playback
-                    audio.ontimeupdate = () => {
-                        if (audio.duration) {
-                            const progress = (audio.currentTime / audio.duration) * 100;
-                            progressBar.value = progress; // Update progress bar
-                        }
-                    };
                 };
 
                 audio.onended = () => {
                     nextWordButton.style.display = "block";
                     nextWordButton.disabled = false;  // Enable the Next Word button after audio ends
-
                     // Check if the record button already exists to avoid duplication
                     if (!document.getElementById("record-button")) {
                         // Add recording button only once
@@ -246,12 +225,13 @@
 
                     mediaRecorder.onstop = async () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
-                        const respondentId = getRespondentId();
-                        const respondentId = getRespondentId();  // Use this one instead of redeclaring
+
+                        // Get respondentId only once
+                        const respondentId = getRespondentId();  // This retrieves or generates respondentId
+
                         // Build folder path using survey data
                         const { grade, "preferred-accent": accent, gender, "learning-start": startAge, languages, dialects } = surveyData;
                         const folderPath = `${grade}_${accent}_${gender}_${startAge}_${languages}_${dialects}/`;
-                        const respondentId = localStorage.getItem("respondentId") || `resp_${Date.now()}`;
 
                         const phaseFolder = `phase${currentPhase + 1}`;  // e.g., phase1, phase2
                         const versionFolder = `v${randomVersion}`; // v1, v2, v3, v4
