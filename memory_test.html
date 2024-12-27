@@ -104,41 +104,7 @@
             return respondentId;
         }
 
-        async function initializeMicrophone() {
-            try {
-                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(audioStream);
-                console.log("Microphone initialized.");
-            } catch (error) {
-                alert("Microphone access failed: " + error.message);
-            }
-        }
-
-        function initializeTest() {
-            initializeMicrophone();
-            startTestButton.style.display = "none";
-            renderInstructions();
-        }
-
-        function renderInstructions() {
-            const phase = phases[currentPhase];
-            instructionsDiv.textContent = phase.instructions;
-            instructionsDiv.style.display = "block";
-            phaseContentDiv.style.display = "none";
-            startPhaseButton.style.display = "block";
-            nextWordButton.style.display = "none";
-            nextWordButton.disabled = true;
-
-            currentIndex = 0;
-        }
-
-        startPhaseButton.addEventListener("click", () => {
-            instructionsDiv.style.display = "none";
-            startPhaseButton.style.display = "none";
-            renderWord();
-        });
-
-        async function renderWord() {
+                async function renderWord() {
             const phase = phases[currentPhase];
             const word = phase.content[currentIndex];
             phaseContentDiv.innerHTML = "";
@@ -217,7 +183,6 @@
             nextWordButton.style.display = "none";
             nextWordButton.disabled = true;
         }
-
         function toggleRecording(word, button) {
             if (mediaRecorder) {
                 if (mediaRecorder.state === "inactive") {
@@ -230,14 +195,14 @@
                         const { grade, "preferred-accent": accent, gender, "learning-start": startAge, languages, dialects } = surveyData;
                         const folderPath = `${grade}_${accent}_${gender}_${startAge}_${languages}_${dialects}/`;
 
-                        const phaseFolder = `phase${currentPhase + 1}`;  
-                        const versionFolder = `v${randomVersion}`; 
+                        const phaseFolder = `phase${currentPhase + 1}`;  // e.g., phase1, phase2
+                        const versionFolder = `v${randomVersion}`; // v1, v2, v3, v4
                         const fileName = `${respondentId}/${folderPath}${phaseFolder}/${versionFolder}/${word}_${Date.now()}.mp3`;
 
                         const client = new OSS({
                             region: 'oss-rg-china-mainland',
-                            accessKeyId: 'your-access-key-id',
-                            accessKeySecret: 'your-access-key-secret',
+                            accessKeyId: 'LTAI5tMVY9Jpm2MroinSie5z',
+                            accessKeySecret: 'BU384EPr4lgFxnBEgwx041JaqSFts6',
                             bucket: 'linguisticstest',
                         });
 
