@@ -82,7 +82,7 @@
 
         const phases = [
             { instructions: "Read aloud! This will help you memorize them better！", content: ["pit", "pat", "pot", "tip", "tap", "top"], record: true },
-            { instructions: "Follow the audio! He/She is willing to enhance your memory!", content: ["pit", "pat", "pot", "tip", "tap", "top"], audio: true, record: true },
+            { instructions: "Follow the audio! He/She is willing to enhance your memory!(the audios may lag due to poor network condition, please be patient)", content: ["pit", "pat", "pot", "tip", "tap", "top"], audio: true, record: true },
             { instructions: "Memory test! Have you seen this word?", content: ["cat", "tip", "cop", "pick", "pat"], test: true },
         ];
 
@@ -297,7 +297,7 @@
         function displayThankYou() {
             document.getElementById("app").innerHTML = `
                 <div class="thank-you">
-                    Well done! Thank you for your participation.
+                    Well done! Thank you for your participation，you can leave the page now.
                 </div>`;
         }
 
