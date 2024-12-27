@@ -57,7 +57,7 @@
 <body>
     <div class="container" id="app">
         <h1>Memory Test</h1>
-        <button id="start-test-button">Start Test</button>
+        <button id="start-test-button" disabled>Start Test</button>
         <div id="instructions" style="display: none;"></div>
         <div id="phase-content" style="display: none;"></div>
         <button id="start-phase-button" style="display: none;">Start Phase</button>
@@ -93,7 +93,6 @@
             4: "audio/4/word",
         };
 
-        // Declare respondentId globally
         let respondentId = getRespondentId();
 
         function getRespondentId() {
@@ -115,6 +114,7 @@
             }
         }
 
+        // Function to preload all audio files for phase 2
         async function preloadAudioFiles() {
             const audioPromises = [];
             const phase = phases[1];  // Preloading audio for Phase 2
@@ -122,18 +122,19 @@
                 const audioPath = `${versionPaths[randomVersion]}/${phase.content[i]}.mp3`;
                 const audio = new Audio(audioPath);
                 audioPromises.push(new Promise(resolve => {
-                    audio.onloadeddata = resolve;
+                    audio.onloadeddata = resolve;  // Resolve when audio is loaded
                 }));
             }
             await Promise.all(audioPromises);
-            // After loading all audio, enable Start Test button
-            startTestButton.disabled = false;  // Enable "Start Test"
+            console.log('All audio files loaded');
+            startTestButton.disabled = false;  // Enable "Start Test" after preloading
         }
 
-        function initializeTest() {
+        // Initialize test by preloading audio and then enabling the Start Test button
+        async function initializeTest() {
             startTestButton.style.display = "none";
-            preloadAudioFiles();  // Preload audio files before starting the test
-            startTestButton.disabled = true;  // Disable "Start Test" button until audio is loaded
+            await preloadAudioFiles();  // Preload audio before enabling the test
+            startTestButton.style.display = "block";  // Display "Start Test" after loading
         }
 
         function renderInstructions() {
@@ -228,7 +229,6 @@
                     mediaRecorder.onstop = async () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
 
-                        // Construct file path with the desired structure
                         const filePath = `${surveyData.grade}_${surveyData.accent}_${surveyData.gender}_${surveyData.startEnglishAge}_${surveyData.language}_${surveyData.dialect}/${respondentId}/phase${currentPhase + 1}/${word}_${Date.now()}.mp3`;
 
                         const client = new OSS({
