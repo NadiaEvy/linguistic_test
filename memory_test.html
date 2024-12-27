@@ -133,15 +133,29 @@
         async function preloadAudio() {
             const phase = phases[1]; // Phase 2 (audio phase)
             const audioFiles = phase.content.map(word => `${versionPaths[randomVersion]}/${word}.mp3`);
+            const totalFiles = audioFiles.length;
+            let filesLoaded = 0;
+
             const promises = audioFiles.map(src => {
                 return new Promise((resolve, reject) => {
                     const audio = new Audio();
                     audio.src = src;
                     audio.preload = "auto";
-                    audio.onloadeddata = () => resolve();
+
+                    audio.onloadeddata = () => {
+                        filesLoaded++;
+                        // Update progress bar width based on files loaded
+                        const progress = (filesLoaded / totalFiles) * 100;
+                        progressBarDiv.style.width = `${progress}%`;
+                        if (filesLoaded === totalFiles) {
+                            resolve();
+                        }
+                    };
+
                     audio.onerror = reject;
                 });
             });
+
             try {
                 await Promise.all(promises);
                 console.log('All audio files preloaded.');
@@ -227,17 +241,11 @@
 
                 const yesButton = document.createElement("button");
                 yesButton.textContent = "Yes";
-                yesButton.onclick = () => {
-                    responses.push({ word, correct: phase.content.includes(word) });
-                    nextWord();
-                };
+                yesButton.onclick = nextWord;
 
                 const noButton = document.createElement("button");
                 noButton.textContent = "No";
-                noButton.onclick = () => {
-                    responses.push({ word, correct: !phase.content.includes(word) });
-                    nextWord();
-                };
+                noButton.onclick = nextWord;
 
                 phaseContentDiv.appendChild(yesButton);
                 phaseContentDiv.appendChild(noButton);
@@ -255,7 +263,6 @@
 
                     mediaRecorder.onstop = async () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
-
                         const { grade, "preferred-accent": accent, gender, "learning-start": startAge, languages, dialects } = surveyData;
                         const folderPath = `${grade}_${accent}_${gender}_${startAge}_${languages}_${dialects}/`;
                         const phaseFolder = `phase${currentPhase + 1}`;
