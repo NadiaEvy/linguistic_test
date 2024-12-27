@@ -142,11 +142,20 @@
                     audio.src = src;
                     audio.preload = "auto";
 
+                    // Monitor progress of each file being loaded
+                    audio.onprogress = () => {
+                        if (audio.buffered.length > 0) {
+                            const total = audio.buffered.end(audio.buffered.length - 1);
+                            const progress = (total / audio.duration) * 100;
+                            progressBarDiv.style.width = `${progress}%`;
+                        }
+                    };
+
                     audio.onloadeddata = () => {
                         filesLoaded++;
-                        // Update progress bar width based on files loaded
                         const progress = (filesLoaded / totalFiles) * 100;
                         progressBarDiv.style.width = `${progress}%`;
+
                         if (filesLoaded === totalFiles) {
                             resolve();
                         }
@@ -160,7 +169,6 @@
                 await Promise.all(promises);
                 console.log('All audio files preloaded.');
                 startTestButton.style.display = "block";
-                progressBarDiv.style.width = "100%"; // Ensure full progress bar when preloading is done
                 startTestButton.disabled = false;
             } catch (error) {
                 console.error('Audio preloading failed:', error);
@@ -242,12 +250,11 @@
                 const yesButton = document.createElement("button");
                 yesButton.textContent = "Yes";
                 yesButton.onclick = nextWord;
+                phaseContentDiv.appendChild(yesButton);
 
                 const noButton = document.createElement("button");
                 noButton.textContent = "No";
                 noButton.onclick = nextWord;
-
-                phaseContentDiv.appendChild(yesButton);
                 phaseContentDiv.appendChild(noButton);
             }
 
