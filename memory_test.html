@@ -155,31 +155,26 @@
 
                 phaseContentDiv.appendChild(audio);
 
-                // Initially disable "Next Word" button
+                // Hide "Next Word" button until audio finishes
                 nextWordButton.style.display = "none";
 
                 audio.oncanplaythrough = () => {
-                    // Start playing once the audio can play through
-                    audio.play();
+                    audio.play(); // Start playback once the audio can play through
                 };
 
                 audio.onended = () => {
-                    // Show the recording button after the audio ends
+                    nextWordButton.style.display = "block";
+                    nextWordButton.disabled = true; // Initially disable until recording is stopped
+                };
+
+                // Add recording button only once
+                if (!document.getElementById("record-button")) {
                     const recordButton = document.createElement("button");
-                    recordButton.id = "record-button";
+                    recordButton.id = "record-button";  // Set an ID to identify the button
                     recordButton.textContent = "Start Recording";
                     recordButton.onclick = () => toggleRecording(word, recordButton);
                     phaseContentDiv.appendChild(recordButton);
-
-                    // Enable "Next Word" button only after the recording is submitted
-                    nextWordButton.style.display = "block";
-                    nextWordButton.disabled = true; // Initially disabled until recording stops
-                };
-
-                // Optional: Show a loading indicator when the audio is buffering
-                audio.onwaiting = () => {
-                    // You can add a loading animation here if needed
-                };
+                }
             } 
             // Handle Phase 1: Display word and recording button
             else if (phase.record) {
@@ -192,10 +187,6 @@
                 recordButton.textContent = "Start Recording";
                 recordButton.onclick = () => toggleRecording(word, recordButton);
                 phaseContentDiv.appendChild(recordButton);
-
-                // Enable Next Word button in Phase 1 to allow progression
-                nextWordButton.style.display = "block";
-                nextWordButton.disabled = false;  // Enable immediately in Phase 1
             }
             // Handle Phase 3: Display yes/no buttons
             else if (phase.test) {
