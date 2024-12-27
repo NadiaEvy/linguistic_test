@@ -52,19 +52,12 @@
             color: #007bff;
             margin-top: 20px;
         }
-        .loading {
-            font-size: 20px;
-            font-weight: bold;
-            color: #6c757d;
-            margin-top: 20px;
-        }
     </style>
 </head>
 <body>
     <div class="container" id="app">
         <h1>Memory Test</h1>
         <button id="start-test-button">Start Test</button>
-        <div id="loading-message" class="loading" style="display: none;">Loading...</div>
         <div id="instructions" style="display: none;"></div>
         <div id="phase-content" style="display: none;"></div>
         <button id="start-phase-button" style="display: none;">Start Phase</button>
@@ -82,7 +75,6 @@
         const responses = [];
         const randomVersion = Math.floor(Math.random() * 4) + 1;
         const startTestButton = document.getElementById("start-test-button");
-        const loadingMessageDiv = document.getElementById("loading-message");
         const instructionsDiv = document.getElementById("instructions");
         const phaseContentDiv = document.getElementById("phase-content");
         const startPhaseButton = document.getElementById("start-phase-button");
@@ -135,13 +127,11 @@
             }
             await Promise.all(audioPromises);
             // After loading all audio, enable Start Test button
-            loadingMessageDiv.style.display = "none";  // Hide "loading..." message
             startTestButton.disabled = false;  // Enable "Start Test"
         }
 
         function initializeTest() {
             startTestButton.style.display = "none";
-            loadingMessageDiv.style.display = "block";  // Show loading message
             preloadAudioFiles();  // Preload audio files before starting the test
             startTestButton.disabled = true;  // Disable "Start Test" button until audio is loaded
         }
@@ -191,17 +181,8 @@
 
                 audio.onended = () => {
                     nextWordButton.style.display = "block";
-                    nextWordButton.disabled = true; // Initially disable until recording is stopped
+                    nextWordButton.disabled = false; // Enable "Next Word" button after audio ends
                 };
-
-                // Add recording button only once
-                if (!document.getElementById("record-button")) {
-                    const recordButton = document.createElement("button");
-                    recordButton.id = "record-button";  // Set an ID to identify the button
-                    recordButton.textContent = "Start Recording";
-                    recordButton.onclick = () => toggleRecording(word, recordButton);
-                    phaseContentDiv.appendChild(recordButton);
-                }
             } 
             // Handle Phase 1: Display word and recording button
             else if (phase.record) {
@@ -247,13 +228,8 @@
                     mediaRecorder.onstop = async () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
 
-                        // Use global respondentId
-                        const { grade, "preferred-accent": accent, gender, "learning-start": startAge, languages, dialects } = surveyData;
-                        const folderPath = `${grade}_${accent}_${gender}_${startAge}_${languages}_${dialects}/`;
-
-                        const phaseFolder = `phase${currentPhase + 1}`;  // e.g., phase1, phase2
-                        const versionFolder = `v${randomVersion}`; // v1, v2, v3, v4
-                        const fileName = `${respondentId}/${folderPath}${phaseFolder}/${versionFolder}/${word}_${Date.now()}.mp3`;
+                        // Construct file path with the desired structure
+                        const filePath = `${surveyData.grade}_${surveyData.accent}_${surveyData.gender}_${surveyData.startEnglishAge}_${surveyData.language}_${surveyData.dialect}/${respondentId}/phase${currentPhase + 1}/${word}_${Date.now()}.mp3`;
 
                         const client = new OSS({
                             region: 'oss-cn-hangzhou',
@@ -262,9 +238,16 @@
                             bucket: 'your-bucket-name',
                         });
 
-                        await client.put(fileName, audioBlob);
+                        try {
+                            const result = await client.put(filePath, audioBlob);
+                            console.log(`Uploaded successfully: ${result.url}`);
+                            button.textContent = "Recording Submitted";
+                            nextWordButton.style.display = "block";
+                            nextWordButton.disabled = false;
+                        } catch (err) {
+                            console.error('Upload failed:', err);
+                        }
                     };
-
                     mediaRecorder.start();
                     button.textContent = "Stop Recording";
                 } else {
@@ -274,7 +257,7 @@
             }
         }
 
-        function nextWord() {
+        nextWordButton.addEventListener("click", () => {
             currentIndex++;
             if (currentIndex < phases[currentPhase].content.length) {
                 renderWord();
@@ -286,7 +269,7 @@
                     showThankYouMessage();
                 }
             }
-        }
+        });
 
         function showThankYouMessage() {
             phaseContentDiv.innerHTML = "";
