@@ -93,6 +93,7 @@
             4: "audio/4/word",
         };
 
+        // Declare respondentId globally
         let respondentId = getRespondentId();
 
         function getRespondentId() {
@@ -104,7 +105,41 @@
             return respondentId;
         }
 
-                async function renderWord() {
+        async function initializeMicrophone() {
+            try {
+                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(audioStream);
+                console.log("Microphone initialized.");
+            } catch (error) {
+                alert("Microphone access failed: " + error.message);
+            }
+        }
+
+        function initializeTest() {
+            initializeMicrophone();
+            startTestButton.style.display = "none";
+            renderInstructions();
+        }
+
+        function renderInstructions() {
+            const phase = phases[currentPhase];
+            instructionsDiv.textContent = phase.instructions;
+            instructionsDiv.style.display = "block";
+            phaseContentDiv.style.display = "none";
+            startPhaseButton.style.display = "block";
+            nextWordButton.style.display = "none";
+            nextWordButton.disabled = true;
+
+            currentIndex = 0;
+        }
+
+        startPhaseButton.addEventListener("click", () => {
+            instructionsDiv.style.display = "none";
+            startPhaseButton.style.display = "none";
+            renderWord();
+        });
+
+        function renderWord() {
             const phase = phases[currentPhase];
             const word = phase.content[currentIndex];
             phaseContentDiv.innerHTML = "";
@@ -120,27 +155,31 @@
 
                 phaseContentDiv.appendChild(audio);
 
-                // Hide "Next Word" button until audio finishes
+                // Initially disable "Next Word" button
                 nextWordButton.style.display = "none";
 
-                // Wait for audio to load and play
                 audio.oncanplaythrough = () => {
+                    // Start playing once the audio can play through
                     audio.play();
                 };
 
                 audio.onended = () => {
-                    nextWordButton.style.display = "block";
-                    nextWordButton.disabled = false;  // Enable Next Word button after recording
-                };
-
-                // Add recording button only after audio playback
-                if (!document.getElementById("record-button")) {
+                    // Show the recording button after the audio ends
                     const recordButton = document.createElement("button");
-                    recordButton.id = "record-button";  // Set an ID to identify the button
+                    recordButton.id = "record-button";
                     recordButton.textContent = "Start Recording";
                     recordButton.onclick = () => toggleRecording(word, recordButton);
                     phaseContentDiv.appendChild(recordButton);
-                }
+
+                    // Enable "Next Word" button only after the recording is submitted
+                    nextWordButton.style.display = "block";
+                    nextWordButton.disabled = true; // Initially disabled until recording stops
+                };
+
+                // Optional: Show a loading indicator when the audio is buffering
+                audio.onwaiting = () => {
+                    // You can add a loading animation here if needed
+                };
             } 
             // Handle Phase 1: Display word and recording button
             else if (phase.record) {
@@ -163,6 +202,7 @@
 
                 const yesButton = document.createElement("button");
                 yesButton.textContent = "Yes";
+                yesButton.onclick = nextWord;
                 yesButton.onclick = () => { 
                     responses.push({ word, correct: phase.content.includes(word) }); 
                     nextWord(); 
@@ -170,6 +210,7 @@
 
                 const noButton = document.createElement("button");
                 noButton.textContent = "No";
+                noButton.onclick = nextWord;
                 noButton.onclick = () => { 
                     responses.push({ word, correct: !phase.content.includes(word) }); 
                     nextWord(); 
@@ -183,6 +224,7 @@
             nextWordButton.style.display = "none";
             nextWordButton.disabled = true;
         }
+
         function toggleRecording(word, button) {
             if (mediaRecorder) {
                 if (mediaRecorder.state === "inactive") {
@@ -192,6 +234,7 @@
                     mediaRecorder.onstop = async () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
 
+                        // Use global respondentId
                         const { grade, "preferred-accent": accent, gender, "learning-start": startAge, languages, dialects } = surveyData;
                         const folderPath = `${grade}_${accent}_${gender}_${startAge}_${languages}_${dialects}/`;
 
@@ -223,44 +266,6 @@
                     button.textContent = "Recording Stopped";
                 }
             }
-        }
-
-        nextWordButton.addEventListener("click", () => {
-            const phase = phases[currentPhase];
-            currentIndex++;
-            if (currentIndex < phase.content.length) {
-                renderWord();
-            } else {
-                currentIndex = 0;
-                nextPhase();
-            }
-        });
-
-        function nextWord() {
-            const phase = phases[currentPhase];
-            currentIndex++;
-            if (currentIndex < phase.content.length) {
-                renderWord();
-            } else {
-                currentIndex = 0;
-                nextPhase();
-            }
-        }
-
-        function nextPhase() {
-            currentPhase++;
-            if (currentPhase < phases.length) {
-                renderInstructions();
-            } else {
-                displayThankYou();
-            }
-        }
-
-        function displayThankYou() {
-            document.getElementById("app").innerHTML = `
-                <div class="thank-you">
-                    Well done! Thank you for your participation.
-                </div>`;
         }
 
         startTestButton.addEventListener("click", initializeTest);
