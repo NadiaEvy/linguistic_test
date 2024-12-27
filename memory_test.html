@@ -192,6 +192,10 @@
                 recordButton.textContent = "Start Recording";
                 recordButton.onclick = () => toggleRecording(word, recordButton);
                 phaseContentDiv.appendChild(recordButton);
+
+                // Enable Next Word button in Phase 1 to allow progression
+                nextWordButton.style.display = "block";
+                nextWordButton.disabled = false;  // Enable immediately in Phase 1
             }
             // Handle Phase 3: Display yes/no buttons
             else if (phase.test) {
@@ -266,6 +270,44 @@
                     button.textContent = "Recording Stopped";
                 }
             }
+        }
+
+        nextWordButton.addEventListener("click", () => {
+            const phase = phases[currentPhase];
+            currentIndex++;
+            if (currentIndex < phase.content.length) {
+                renderWord();
+            } else {
+                currentIndex = 0;
+                nextPhase();
+            }
+        });
+
+        function nextWord() {
+            const phase = phases[currentPhase];
+            currentIndex++;
+            if (currentIndex < phase.content.length) {
+                renderWord();
+            } else {
+                currentIndex = 0;
+                nextPhase();
+            }
+        }
+
+        function nextPhase() {
+            currentPhase++;
+            if (currentPhase < phases.length) {
+                renderInstructions();
+            } else {
+                displayThankYou();
+            }
+        }
+
+        function displayThankYou() {
+            document.getElementById("app").innerHTML = `
+                <div class="thank-you">
+                    Well done! Thank you for your participation.
+                </div>`;
         }
 
         startTestButton.addEventListener("click", initializeTest);
