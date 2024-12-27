@@ -58,6 +58,7 @@
             background-color: #e0e0e0;
             border-radius: 5px;
             margin-top: 20px;
+            display: none;
         }
         #progress-bar div {
             height: 100%;
@@ -70,12 +71,12 @@
 <body>
     <div class="container" id="app">
         <h1>Memory Test</h1>
-        <button id="start-test-button">Start Test</button>
+        <button id="start-test-button" style="display: none;">Start Test</button>
         <div id="instructions" style="display: none;"></div>
         <div id="phase-content" style="display: none;"></div>
         <button id="start-phase-button" style="display: none;">Start Phase</button>
         <button id="next-word-button" style="display: none;" disabled>Next Word</button>
-        <div id="progress-bar" style="display: none;"><div></div></div>
+        <div id="progress-bar"><div></div></div>
     </div>
 
     <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.7.0.min.js"></script>
@@ -146,6 +147,7 @@
                 console.log('All audio files preloaded.');
                 startTestButton.style.display = "block";
                 progressBarDiv.style.width = "100%"; // Ensure full progress bar when preloading is done
+                startTestButton.disabled = false;
             } catch (error) {
                 console.error('Audio preloading failed:', error);
             }
@@ -187,7 +189,6 @@
                 audio.src = audioPath;
                 audio.controls = true;
                 audio.preload = "auto";
-
                 phaseContentDiv.appendChild(audio);
 
                 nextWordButton.style.display = "none";
@@ -199,7 +200,7 @@
                 audio.onended = () => {
                     nextWordButton.style.display = "block";
                     nextWordButton.disabled = true;
-                    // Only show recording button after audio ends
+
                     if (!document.getElementById("record-button")) {
                         const recordButton = document.createElement("button");
                         recordButton.id = "record-button";
@@ -226,18 +227,16 @@
 
                 const yesButton = document.createElement("button");
                 yesButton.textContent = "Yes";
-                yesButton.onclick = nextWord;
-                yesButton.onclick = () => { 
-                    responses.push({ word, correct: phase.content.includes(word) }); 
-                    nextWord(); 
+                yesButton.onclick = () => {
+                    responses.push({ word, correct: phase.content.includes(word) });
+                    nextWord();
                 };
 
                 const noButton = document.createElement("button");
                 noButton.textContent = "No";
-                noButton.onclick = nextWord;
-                noButton.onclick = () => { 
-                    responses.push({ word, correct: !phase.content.includes(word) }); 
-                    nextWord(); 
+                noButton.onclick = () => {
+                    responses.push({ word, correct: !phase.content.includes(word) });
+                    nextWord();
                 };
 
                 phaseContentDiv.appendChild(yesButton);
@@ -299,17 +298,6 @@
                 nextPhase();
             }
         });
-
-        function nextWord() {
-            const phase = phases[currentPhase];
-            currentIndex++;
-            if (currentIndex < phase.content.length) {
-                renderWord();
-            } else {
-                currentIndex = 0;
-                nextPhase();
-            }
-        }
 
         function nextPhase() {
             currentPhase++;
